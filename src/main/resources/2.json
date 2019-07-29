@@ -1,0 +1,9 @@
+{
+  "type": "start_game",
+  "params": {
+    "x_cells_count": 31,
+    "y_cells_count": 31,
+    "speed": 5,
+    "width": 30
+  }
+}
