@@ -4,13 +4,13 @@ import message.BonusType;
 import message.Message;
 import strategy.model.Player;
 import strategy.model.PlayerState;
-import strategy.model.TerritoryBitMask;
+import strategy.model.PlayerTail;
+import strategy.model.PlayerTerritory;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static strategy.Game.cell;
 import static strategy.Game.point2cell;
 
 public class MessagePlayer2PlayerConverter {
@@ -24,10 +24,10 @@ public class MessagePlayer2PlayerConverter {
 	public Player convert(String messageKey, Message.Player messagePlayer) {
 		Player result = new Player(getIndex(messageKey));
 
-		TerritoryBitMask territory = new TerritoryBitMask();
-		Arrays.stream(messagePlayer.territory).map(ints -> point2cell(ints[0], ints[1])).forEach(territory::setOccupied);
-		TerritoryBitMask lines = new TerritoryBitMask();
-		Arrays.stream(messagePlayer.lines).map(ints -> point2cell(ints[0], ints[1])).forEach(lines::setOccupied);
+		PlayerTerritory playerTerritory = new PlayerTerritory();
+		Arrays.stream(messagePlayer.territory).map(ints -> point2cell(ints[0], ints[1])).forEach(playerTerritory::set);
+		PlayerTail tail = new PlayerTail();
+		Arrays.stream(messagePlayer.lines).map(ints -> point2cell(ints[0], ints[1])).forEach(tail::addToTail);
 
 		int nitroCells = 0;
 		int slowCells = 0;
@@ -44,8 +44,8 @@ public class MessagePlayer2PlayerConverter {
 				messagePlayer.score,
 				messagePlayer.position[0],
 				messagePlayer.position[1],
-				territory,
-				lines,
+				playerTerritory,
+				tail,
 				nitroCells,
 				slowCells
 		);

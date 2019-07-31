@@ -3,20 +3,20 @@ package strategy;
 import message.BonusType;
 import message.Direction;
 import strategy.model.Cell;
+import strategy.model.Move;
+import strategy.model.MovePlan;
 import strategy.model.Player;
 import strategy.model.PlayerState;
-import strategy.model.TerritoryBitMask;
+import strategy.model.PlayerTerritory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
-import static java.lang.Math.log;
-import static java.lang.Math.sqrt;
 import static strategy.Game.buildTimeMatrix;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -25,153 +25,118 @@ public class Strategy {
 	private static long REQUEST_MAX_TIME = 4_000;
 	private static long MAX_EXECUTION_TIME = 100_000;
 
-	private CalculationNode rootNode = null;
+
+	private PlayerTerritory otherPlayerTerritory = new PlayerTerritory();
+	private int[] timeMatrix = new int[Game.sizeX * Game.sizeY];
+
+	private void initTick(int tick, Player me, List<Player> others, Map<Cell, List<BonusType>> bonusTypeMap) {
+		Arrays.fill(timeMatrix, Integer.MAX_VALUE);
+
+		otherPlayerTerritory.clear();
+		for (Player player : others) {
+			otherPlayerTerritory.or(player.getState().getPlayerTerritory());
+			buildTimeMatrix(tick, player.getState().getNitroCells(), player.getState().getSlowCells(), player.getState().getDirection(), player.getState().getX(), player.getState().getY(), timeMatrix);
+		}
+	}
 
 	public Direction calculate(int tick, Player me, List<Player> others, Map<Cell, List<BonusType>> bonusTypeMap) {
 		long startTime = System.currentTimeMillis();
 
-		if (rootNode == null) {
-			rootNode = new CalculationNode(me.getState().getDirection());
+		initTick(tick, me, others, bonusTypeMap);
+
+		Set<Direction> directions = me.getPossibleDirections();
+		if (directions.isEmpty()) {
+			return Direction.up;
 		}
 
-		int[][] timeMatrix = new int[Game.sizeX][Game.sizeY];
-		for (int i = 0; i < Game.sizeX; i++) {
-			Arrays.fill(timeMatrix[i], Integer.MAX_VALUE);
+		List<MovePlan> plans = new ArrayList<>();
+		for (Direction m1d : directions) {
+			plans.add(new MovePlan(new Move(m1d))); // пока не упремся или не замкнем территорию
+			for (int m1 = 1; m1 < 20; m1++) {
+				for (Direction m2d : Direction.values()) {
+					if (m2d.isOpposite(m1d) || m2d == m1d) continue;
+					plans.add(new MovePlan(new Move(m1d, m1), new Move(m2d))); // для 2го хода пока не упремся
+					for (int m2 = 1; m2 < 20; m2++) {
+						plans.add(new MovePlan(new Move(m1d, m1), new Move(m2d, m2), new Move(m1d.opposite())));
+					}
+				}
+			}
 		}
 
-		TerritoryBitMask otherTerritory = new TerritoryBitMask();
-		TerritoryBitMask otherLines = new TerritoryBitMask();
-
-		for (Player player : others) {
-			otherTerritory.add(player.getState().getTerritory());
-			otherLines.add(player.getState().getLines());
-			buildTimeMatrix(tick, player.getState().getNitroCells(), player.getState().getSlowCells(), player.getState().getDirection(), player.getState().getX(), player.getState().getY(), timeMatrix);
+		int lastTick = Integer.MAX_VALUE;
+		for (Cell cell : me.getState().getTail().getCells()) {
+			lastTick = Math.min(lastTick, timeMatrix[cell.getIndex()]);
 		}
 
-
-
-
-
-
-
-
-
-
-
-		List<CalculationNode> visited = new ArrayList<>();
-		while (System.currentTimeMillis() - startTime < 300) {
-			int depth = 1;
+		// проигрываем все ходы
+		FOR_PLANS:
+		for (MovePlan plan : plans) {
 			me.saveState();
 			try {
+				PlayerState state = me.getState();
 				int currentTick = tick;
-				CalculationNode currentNode = rootNode;
-				visited.add(currentNode);
-				while (!currentNode.isLeaf()) {
-					currentNode = currentNode.select();
-					visited.add(currentNode);
-					currentTick += me.move(currentNode.direction);
-					depth++;
-				}
+				for (Move move : plan.getMoves()) {
+					int cells = move.getCells();
+					while (cells > 0) {
+						int ticks = me.move(move.getDirection());
+						if (ticks > 0) {
+							currentTick += ticks;
+							if (currentTick > Game.maxTickCount) {
+								plan.setScore(Double.MIN_VALUE);
+								continue FOR_PLANS;
+							}
+							Cell cell = Game.point2cell(state.getX(), state.getY());
 
-				currentNode.expand(me.getPossibleDirections());
-				CalculationNode newNode = currentNode.select();
-				double value = 0;
-				if (newNode != null) {
-					visited.add(newNode);
-					value = estimateMove(depth, currentTick, newNode, me, otherTerritory, otherLines, timeMatrix);
-				}
-				for (CalculationNode node : visited) {
-					node.updateStats(value);
-				}
+							if (timeMatrix[cell.getIndex()] <= currentTick) {
+								// скорее всего не успеваем по времени (могут перехватить)
+								plan.setScore(Double.MIN_VALUE);
+								continue FOR_PLANS;
+							}
 
-				if (value > 1) break;
+							int moveScore = calculateMoveScore(me.getCapturedCells());
+							if (moveScore > 0) {
+								moveScore += ThreadLocalRandom.current().nextDouble();
+
+								if (currentTick >= lastTick) {
+									plan.setScore(1. * moveScore / ((currentTick - tick) * (currentTick - lastTick + 2) * (currentTick - lastTick + 2)));
+								} else {
+									if (timeMatrix[cell.getIndex()] - currentTick < Game.speed) {
+										plan.setScore(1. * moveScore / ((currentTick - tick) * 2));
+									} else {
+										plan.setScore(1. * moveScore / (currentTick - tick));
+									}
+								}
+								continue FOR_PLANS;
+							}
+
+						} else {
+							// невозможный ход
+							plan.setScore(-Double.MAX_VALUE);
+							continue FOR_PLANS;
+						}
+						cells--;
+					}
+				}
 			} finally {
 				me.restoreState();
 			}
-			if (depth > 30) {
-				break;
-			}
 		}
 
-		rootNode = rootNode.select();
-		if (rootNode != null) {
-			return rootNode.direction;
-		}
-
-		return Direction.up;
+		plans.sort(Comparator.comparingDouble(MovePlan::getScore).reversed());
+		MovePlan plan = plans.get(0);
+		return plan.getMoves()[0].getDirection();
 	}
 
 
-	private int calculateMoveScore(List<Cell> capturedCells, TerritoryBitMask otherTerritory) {
+	private int calculateMoveScore(List<Cell> capturedCells) {
 		int result = capturedCells.size();
 		for (Cell cell : capturedCells) {
-			if (otherTerritory.isOccupied(cell)) {
+			if (otherPlayerTerritory.get(cell)) {
 				result += 4;
 			}
 		}
 		return result;
 	}
 
-	private double estimateMove(int depth, int currentTick, CalculationNode newNode, Player player, TerritoryBitMask otherTerritory, TerritoryBitMask otherLines, int[][] timeMatrix) {
-		double result = EPSILON;
-		PlayerState state = player.getState();
-		if (state.getDirection() == newNode.direction) {
-			result += EPSILON;
-		}
-
-		player.move(newNode.direction);
-
-		Cell cell = Game.point2cell(state.getX(), state.getY());
-		if (timeMatrix[cell.x][cell.y] < currentTick) {
-			return 0;
-		}
-
-		result += calculateMoveScore(player.getCapturedCells(), otherTerritory) / log(depth);
-		return result;
-	}
-
-	private static class CalculationNode {
-		final Direction direction;
-		int visits;
-		double value;
-		List<CalculationNode> children;
-
-		CalculationNode(Direction direction) {
-			this.direction = direction;
-		}
-
-		boolean isLeaf() {
-			return children == null || children.isEmpty();
-		}
-
-		void expand(List<Direction> directions) {
-			this.children = directions.stream().map(CalculationNode::new).collect(Collectors.toList());
-		}
-
-		void updateStats(double addValue) {
-			visits++;
-			value += addValue;
-		}
-
-		CalculationNode select() {
-			Random random = ThreadLocalRandom.current();
-			CalculationNode result = null;
-			double bestValue = Double.MIN_VALUE;
-
-			for (CalculationNode candidate : children) {
-				double uctValue = candidate.value / (candidate.visits + EPSILON) + sqrt(log(visits + 1) / (candidate.visits + EPSILON)) + random.nextDouble() * EPSILON;
-				if (uctValue >= bestValue) {
-					result = candidate;
-					bestValue = uctValue;
-				}
-			}
-			return result;
-		}
-
-		@Override
-		public String toString() {
-			return direction.name();
-		}
-	}
 
 }

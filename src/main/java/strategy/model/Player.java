@@ -3,12 +3,13 @@ package strategy.model;
 import message.Direction;
 import strategy.Game;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static strategy.Game.capture;
 import static strategy.Game.point2cell;
@@ -19,7 +20,7 @@ public class Player {
 	private final int index;
 	private PlayerState state;
 
-	transient List<Cell> capturedCells = Collections.emptyList();
+	private transient List<Cell> capturedCells = Collections.emptyList();
 
 	public Player(int index) {
 		this.index = index;
@@ -37,14 +38,14 @@ public class Player {
 		this.state = state;
 	}
 
-	public List<Direction> getPossibleDirections() {
+	public Set<Direction> getPossibleDirections() {
 		if (Game.isNotCellCenter(state.getX(), state.getY()))
-			return Collections.emptyList();
+			return Collections.emptySet();
 
-		List<Direction> result = new ArrayList<>();
+		Set<Direction> result = EnumSet.noneOf(Direction.class);
 		Cell cell = Game.point2cell(state.getX(), state.getY());
-		for (Map.Entry<Direction, Cell> entry : cell.neighborsMap.entrySet()) {
-			if (state.getLines().isOccupied(entry.getValue()))
+		for (Map.Entry<Direction, Cell> entry : cell.getNeighborsMap().entrySet()) {
+			if (state.getTail().isTail(entry.getValue()))
 				continue;
 
 			if (entry.getKey().isOpposite(state.getDirection()))
@@ -56,6 +57,11 @@ public class Player {
 	}
 
 	public int move(Direction direction) {
+		Set<Direction> mpd = this.getPossibleDirections();
+		if (!mpd.contains(direction)) {
+			return 0;
+		}
+
 		capturedCells = Collections.emptyList();
 		int ticksForMove = Game.width / Game.calculateSpeed(state.getNitroCells(), state.getSlowCells());
 		state.setDirection(direction);
@@ -77,23 +83,23 @@ public class Player {
 				throw new IllegalStateException("direction is null");
 		}
 
-		TerritoryBitMask territory = state.getTerritory();
-		TerritoryBitMask lines = state.getLines();
+		PlayerTerritory playerTerritory = state.getPlayerTerritory();
+		PlayerTail tail = state.getTail();
 
 		Cell cell = point2cell(state.getX(), state.getY());
-		if (lines.getOccupiedCount() > 0) {
-			if (territory.isOccupied(cell)) {
+		if (tail.length() > 0) {
+			if (playerTerritory.get(cell)) {
 				capturedCells = capture(state);
 				for (Cell capturedCell : capturedCells) {
-					territory.setOccupied(capturedCell);
+					playerTerritory.set(capturedCell);
 				}
-				lines.clear();
+				tail.clear();
 			} else {
-				lines.setOccupied(cell);
+				tail.addToTail(cell);
 			}
 		} else {
-			if (territory.isNotOccupied(cell)) {
-				lines.setOccupied(cell);
+			if (!playerTerritory.get(cell)) {
+				tail.addToTail(cell);
 			}
 		}
 

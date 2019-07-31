@@ -12,18 +12,18 @@ public class PlayerState {
 	private int score;
 	private int x;
 	private int y;
-	private TerritoryBitMask territory;
-	private TerritoryBitMask lines;
+	private PlayerTerritory playerTerritory;
+	private PlayerTail tail;
 	private int nitroCells;
 	private int slowCells;
 
-	public PlayerState(Direction direction, int score, int x, int y, TerritoryBitMask territory, TerritoryBitMask lines, int nitroCells, int slowCells) {
+	public PlayerState(Direction direction, int score, int x, int y, PlayerTerritory playerTerritory, PlayerTail tail, int nitroCells, int slowCells) {
 		this.direction = direction;
 		this.score = score;
 		this.x = x;
 		this.y = y;
-		this.territory = territory;
-		this.lines = lines;
+		this.playerTerritory = playerTerritory;
+		this.tail = tail;
 		this.nitroCells = nitroCells;
 		this.slowCells = slowCells;
 	}
@@ -33,8 +33,8 @@ public class PlayerState {
 		score = other.score;
 		x = other.x;
 		y = other.y;
-		territory = new TerritoryBitMask(other.territory);
-		lines = new TerritoryBitMask(other.lines);
+		playerTerritory = new PlayerTerritory(other.playerTerritory);
+		tail = new PlayerTail(other.tail);
 		nitroCells = other.nitroCells;
 		slowCells = other.slowCells;
 	}
@@ -55,12 +55,12 @@ public class PlayerState {
 		return y;
 	}
 
-	public TerritoryBitMask getTerritory() {
-		return territory;
+	public PlayerTerritory getPlayerTerritory() {
+		return playerTerritory;
 	}
 
-	public TerritoryBitMask getLines() {
-		return lines;
+	public PlayerTail getTail() {
+		return tail;
 	}
 
 	public int getNitroCells() {
@@ -87,13 +87,10 @@ public class PlayerState {
 		this.y = y;
 	}
 
-	public void setTerritory(TerritoryBitMask territory) {
-		this.territory = territory;
+	public void setPlayerTerritory(PlayerTerritory playerTerritory) {
+		this.playerTerritory = playerTerritory;
 	}
 
-	public void setLines(TerritoryBitMask lines) {
-		this.lines = lines;
-	}
 
 	public void setNitroCells(int nitroCells) {
 		this.nitroCells = nitroCells;
