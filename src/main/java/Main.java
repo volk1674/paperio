@@ -27,7 +27,7 @@ import static java.util.stream.Collectors.toList;
 import static strategy.Game.point2cell;
 
 public class Main {
-
+	
 	public static void main(String args[]) throws FileNotFoundException {
 		PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
 		MessagePlayer2PlayerConverter playerConverter = new MessagePlayer2PlayerConverter();
@@ -42,7 +42,6 @@ public class Main {
 
 			Gson gson = new Gson();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
 
 			while (true) {
 				line = reader.readLine();

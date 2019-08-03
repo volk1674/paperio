@@ -11,7 +11,7 @@ import static strategy.Game.cell;
 class PlayerTerritoryTest {
 
 	@Test
-	void isOccupied() {
+	void test1() {
 		PlayerTerritory playerTerritory = new PlayerTerritory();
 
 		for (int i = 0; i < Game.sizeX; i++) {
@@ -31,6 +31,16 @@ class PlayerTerritoryTest {
 				Assert.assertEquals(playerTerritory.get(cell(i, j)), clone.get(cell(i, j)));
 			}
 		}
+	}
 
+	@Test
+	void test2() {
+		PlayerTerritory playerTerritory = new PlayerTerritory();
+		Cell cell_17x0 = cell(17,0);
+		Cell cell_16x30 = cell(16, 30);
+
+		playerTerritory.set(cell_17x0);
+		Assert.assertTrue(playerTerritory.get(cell_17x0));
+		Assert.assertFalse(playerTerritory.get(cell_16x30));
 	}
 }

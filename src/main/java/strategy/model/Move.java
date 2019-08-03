@@ -28,4 +28,8 @@ public class Move {
 	public String toString() {
 		return "" + direction + "(" + cells + ")";
 	}
+
+	public void setCells(int n) {
+		cells = n;
+	}
 }

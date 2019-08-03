@@ -2,9 +2,10 @@ package strategy.model;
 
 import java.util.Arrays;
 
-public class MovePlan {
+public class MovePlan implements Comparable<MovePlan> {
 	private final Move[] moves;
 	private double score;
+	private double risk;
 
 	public MovePlan(Move... moves) {
 		this.moves = moves;
@@ -22,8 +23,25 @@ public class MovePlan {
 		this.score = score;
 	}
 
+	public double getRisk() {
+		return risk;
+	}
+
+	public void setRisk(double risk) {
+		this.risk = risk;
+	}
+
 	@Override
 	public String toString() {
-		return "MovePlan{" + Arrays.toString(moves) + ": " + score + '}';
+		return  Arrays.toString(moves) + " : " + score + " : " + risk;
+	}
+
+	@Override
+	public int compareTo(MovePlan other) {
+		int result = -Double.compare(this.risk, other.risk);
+		if (result == 0) {
+			result = Double.compare(this.score, other.score);
+		}
+		return result;
 	}
 }

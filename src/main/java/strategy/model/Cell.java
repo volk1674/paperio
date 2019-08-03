@@ -15,7 +15,7 @@ public class Cell {
 	private final Map<Direction, Cell> neighborsMap = new EnumMap<>(Direction.class);
 
 	public Cell(int x, int y, boolean border) {
-		this.index = x * Game.width + y;
+		this.index = x * Game.sizeY + y;
 		this.x = x;
 		this.y = y;
 		this.border = border;
