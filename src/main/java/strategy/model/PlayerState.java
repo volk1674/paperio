@@ -14,18 +14,18 @@ public class PlayerState {
 	private int y;
 	private PlayerTerritory playerTerritory;
 	private PlayerTail tail;
-	private int nitroCells;
-	private int slowCells;
+	private int nb;
+	private int sb;
 
-	public PlayerState(Direction direction, int score, int x, int y, PlayerTerritory playerTerritory, PlayerTail tail, int nitroCells, int slowCells) {
+	public PlayerState(Direction direction, int score, int x, int y, PlayerTerritory playerTerritory, PlayerTail tail, int nb, int sb) {
 		this.direction = direction;
 		this.score = score;
 		this.x = x;
 		this.y = y;
 		this.playerTerritory = playerTerritory;
 		this.tail = tail;
-		this.nitroCells = nitroCells;
-		this.slowCells = slowCells;
+		this.nb = nb;
+		this.sb = sb;
 	}
 
 	public PlayerState(PlayerState other) {
@@ -35,8 +35,8 @@ public class PlayerState {
 		y = other.y;
 		playerTerritory = new PlayerTerritory(other.playerTerritory);
 		tail = new PlayerTail(other.tail);
-		nitroCells = other.nitroCells;
-		slowCells = other.slowCells;
+		nb = other.nb;
+		sb = other.sb;
 	}
 
 	public Direction getDirection() {
@@ -63,12 +63,12 @@ public class PlayerState {
 		return tail;
 	}
 
-	public int getNitroCells() {
-		return nitroCells;
+	public int getNb() {
+		return nb;
 	}
 
-	public int getSlowCells() {
-		return slowCells;
+	public int getSb() {
+		return sb;
 	}
 
 	public void setDirection(Direction direction) {
@@ -92,12 +92,12 @@ public class PlayerState {
 	}
 
 
-	public void setNitroCells(int nitroCells) {
-		this.nitroCells = nitroCells;
+	public void setNb(int nb) {
+		this.nb = nb;
 	}
 
-	public void setSlowCells(int slowCells) {
-		this.slowCells = slowCells;
+	public void setSb(int sb) {
+		this.sb = sb;
 	}
 
 	public void moveTickDown() {
@@ -133,13 +133,20 @@ public class PlayerState {
 	}
 
 	public void useBonuses() {
-		if (nitroCells > 0) nitroCells--;
-		if (slowCells > 0) slowCells--;
+		if (nb > 0) nb--;
+		if (sb > 0) sb--;
 	}
 
 	public int getSpeed() {
-		return calculateSpeed(nitroCells, slowCells);
+		return calculateSpeed(nb, sb);
 	}
 
 
+	public void addNitro(int cells) {
+		nb += cells;
+	}
+
+	public void  addSlow(int cells) {
+		sb += cells;
+	}
 }

@@ -44,4 +44,23 @@ public class MovePlan implements Comparable<MovePlan> {
 		}
 		return result;
 	}
+
+	public boolean isPartOf(MovePlan other) {
+		if (this.moves.length > other.moves.length) {
+			return false;
+		}
+
+		for (int i = 0; i < moves.length - 1; i++) {
+			Move thisMove = moves[i];
+			Move otherMove = other.moves[i];
+			if (thisMove.getDirection() != otherMove.getDirection() || thisMove.getLength() != otherMove.getLength()) {
+				return false;
+			}
+		}
+
+		Move thisMove = moves[this.moves.length - 1];
+		Move otherMove = other.moves[this.moves.length - 1];
+
+		return thisMove.getDirection() == otherMove.getDirection() && thisMove.getLength() <= otherMove.getLength();
+	}
 }

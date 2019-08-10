@@ -17,6 +17,8 @@ public class VisioConfig {
 		int tick_num;
 
 		Map<String, message.Message.Player> players;
+		message.Message.Bonus[] bonuses;
 	}
+
 
 }

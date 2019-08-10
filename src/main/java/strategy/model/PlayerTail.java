@@ -1,31 +1,30 @@
 package strategy.model;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
+import strategy.Game;
 
-public class PlayerTail {
-	private final BitSet cellsBitSet;
-	private final List<Cell> cells;
+import java.util.ArrayDeque;
+import java.util.BitSet;
+
+public class PlayerTail extends BitSet {
+	private final ArrayDeque<Cell> cells;
 
 	public PlayerTail() {
-		cellsBitSet = new BitSet();
-		cells = new ArrayList<>();
+		cells = new ArrayDeque<>(Game.sizeX * Game.sizeY);
 	}
 
 	public PlayerTail(PlayerTail other) {
 		this();
 		cells.addAll(other.cells);
-		cellsBitSet.or(other.cellsBitSet);
+		this.or(other);
 	}
 
 	public void addToTail(Cell cell) {
 		cells.add(cell);
-		cellsBitSet.set(cell.getIndex());
+		set(cell.getIndex());
 	}
 
 	public boolean isTail(Cell cell) {
-		return cellsBitSet.get(cell.getIndex());
+		return get(cell.getIndex());
 	}
 
 	public int length() {
@@ -34,10 +33,14 @@ public class PlayerTail {
 
 	public void clear() {
 		cells.clear();
-		cellsBitSet.clear();
+		super.clear();
 	}
 
-	public List<Cell> getCells() {
+	public ArrayDeque<Cell> getCells() {
 		return cells;
+	}
+
+	public void removeLast() {
+		clear(cells.removeLast().getIndex());
 	}
 }

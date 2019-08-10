@@ -1,29 +1,23 @@
 package strategy;
 
 import com.google.gson.Gson;
-import message.BonusType;
 import message.Direction;
 import message.Message;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
+import strategy.model.Bonus;
 import strategy.model.Cell;
-import strategy.model.Move;
-import strategy.model.MovePlan;
 import strategy.model.Player;
 import strategy.utils.MessagePlayer2PlayerConverter;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static strategy.Game.point2cell;
 
 class StrategyTest {
@@ -47,7 +41,9 @@ class StrategyTest {
 			}
 		}
 
-		Map<Cell, List<BonusType>> bonusTypeMap = stream(message.params.bonuses).collect(groupingBy(bonus -> point2cell(bonus.position[0], bonus.position[1]), HashMap::new, mapping(Message.Bonus::getType, toList())));
+		Map<Cell, Bonus> bonusMap = stream(message.params.bonuses)
+				.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
+
 
 		Strategy strategy = new Strategy() {
 //			@Override
@@ -57,7 +53,7 @@ class StrategyTest {
 //			}
 		};
 
-		Direction result = strategy.calculate(message.params.tick_num, me, others, bonusTypeMap);
+		Direction result = strategy.calculate(message.params.tick_num, me, others, bonusMap);
 		Assert.assertEquals(result, Direction.left);
 
 	}

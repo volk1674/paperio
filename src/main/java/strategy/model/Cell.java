@@ -3,30 +3,33 @@ package strategy.model;
 import message.Direction;
 import strategy.Game;
 
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.Map;
-
 public class Cell {
 	private final int index;
 	private final int x;
 	private final int y;
 	private final boolean border;
-	private final Map<Direction, Cell> neighborsMap = new EnumMap<>(Direction.class);
+	private final Direction[] directions;
+	private Cell[] neighbors;
 
-	public Cell(int x, int y, boolean border) {
+
+	public Cell(int x, int y, boolean border, Direction[] directions) {
 		this.index = x * Game.sizeY + y;
 		this.x = x;
 		this.y = y;
 		this.border = border;
+		this.directions = directions;
 	}
 
-	public Collection<Cell> neighbors() {
-		return neighborsMap.values();
+	public Cell[] neighbors() {
+		return neighbors;
 	}
 
-	public Collection<Direction> directions() {
-		return neighborsMap.keySet();
+	public void setNeighbors(Cell[] neighbors) {
+		this.neighbors = neighbors;
+	}
+
+	public Direction[] directions() {
+		return directions;
 	}
 
 	@Override
@@ -50,7 +53,5 @@ public class Cell {
 		return border;
 	}
 
-	public Map<Direction, Cell> getNeighborsMap() {
-		return neighborsMap;
-	}
+
 }

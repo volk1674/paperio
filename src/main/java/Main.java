@@ -1,9 +1,9 @@
 import com.google.gson.Gson;
-import message.BonusType;
 import message.Direction;
 import message.Message;
 import strategy.Game;
 import strategy.Strategy;
+import strategy.model.Bonus;
 import strategy.model.Cell;
 import strategy.model.Player;
 import strategy.utils.MessagePlayer2PlayerConverter;
@@ -16,18 +16,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static strategy.Game.point2cell;
 
 public class Main {
-	
+
 	public static void main(String args[]) throws FileNotFoundException {
 		PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
 		MessagePlayer2PlayerConverter playerConverter = new MessagePlayer2PlayerConverter();
@@ -68,9 +65,10 @@ public class Main {
 						}
 					}
 
-					Map<Cell, List<BonusType>> bonusTypeMap = stream(message.params.bonuses).collect(groupingBy(bonus -> point2cell(bonus.position[0], bonus.position[1]), HashMap::new, mapping(Message.Bonus::getType, toList())));
+					Map<Cell, Bonus> bonusMap = stream(message.params.bonuses)
+							.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
 
-					out.print(commands.get(strategy.calculate(message.params.tick_num, me, others, bonusTypeMap)));
+					out.print(commands.get(strategy.calculate(message.params.tick_num, me, others, bonusMap)));
 					out.flush();
 				}
 			}

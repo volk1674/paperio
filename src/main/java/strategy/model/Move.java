@@ -4,32 +4,32 @@ import message.Direction;
 
 public class Move {
 	private Direction direction;
-	private int cells;
+	private int length;
 
 	public Move(Direction direction) {
 		this.direction = direction;
-		this.cells = Integer.MAX_VALUE;
+		this.length = Integer.MAX_VALUE;
 	}
 
-	public Move(Direction direction, int cells) {
+	public Move(Direction direction, int length) {
 		this.direction = direction;
-		this.cells = cells;
+		this.length = length;
 	}
 
 	public Direction getDirection() {
 		return direction;
 	}
 
-	public int getCells() {
-		return cells;
+	public int getLength() {
+		return length;
 	}
 
 	@Override
 	public String toString() {
-		return "" + direction + "(" + cells + ")";
+		return "" + direction + "(" + length + ")";
 	}
 
-	public void setCells(int n) {
-		cells = n;
+	public void setLength(int n) {
+		length = n;
 	}
 }

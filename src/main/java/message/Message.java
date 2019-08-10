@@ -11,6 +11,7 @@ public class Message {
 	public static class Bonus {
 		public BonusType type;
 		public int[] position;
+		public int active_ticks;
 
 		public BonusType getType() {
 			return type;

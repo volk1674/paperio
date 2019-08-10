@@ -7,7 +7,6 @@ import strategy.model.PlayerTail;
 import strategy.model.PlayerTerritory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import static java.lang.Math.round;
@@ -37,36 +36,62 @@ public class Game {
 	}
 
 	static private void initCells() {
+		//left(2), up(3), right(0), down(1);
+
+		Direction[] upRightDown = {Direction.up, Direction.right, Direction.down};
+		Direction[] leftUpDown = {Direction.left, Direction.up, Direction.down};
+		Direction[] leftUpRight = {Direction.left, Direction.up, Direction.right};
+		Direction[] leftDownRight = {Direction.left, Direction.right, Direction.down};
+		Direction[] rightDown = {Direction.right, Direction.down};
+		Direction[] rightUp = {Direction.up, Direction.right};
+		Direction[] leftDown = {Direction.left, Direction.down};
+		Direction[] leftUp = {Direction.left, Direction.up};
+
 		cells = new Cell[Game.sizeX][Game.sizeY];
 		for (int i = 0; i < Game.sizeX; i++) {
 			for (int j = 0; j < Game.sizeY; j++) {
-				cells[i][j] = new Cell(i, j, i == 0 || j == 0 || i == sizeX - 1 || j == sizeY - 1);
+				Direction[] directions = Direction.values();
+				if (i == 0 && j == 0) {
+					directions = rightUp;
+				} else if (i == 0 && j == Game.sizeY - 1) {
+					directions = rightDown;
+				} else if (i == Game.sizeX - 1 && j == Game.sizeY - 1) {
+					directions = leftDown;
+				} else if (i == Game.sizeX - 1 && j == 0) {
+					directions = leftUp;
+				} else if (j == 0) {
+					directions = leftUpRight;
+				} else if (j == Game.sizeY - 1) {
+					directions = leftDownRight;
+				} else if (i == 0) {
+					directions = upRightDown;
+				} else if (i == Game.sizeX - 1) {
+					directions = leftUpDown;
+				}
+				cells[i][j] = new Cell(i, j, i == 0 || j == 0 || i == sizeX - 1 || j == sizeY - 1, directions);
 			}
 		}
 
 		for (int i = 0; i < Game.sizeX; i++) {
 			for (int j = 0; j < Game.sizeY; j++) {
-				if (i > 0) {
-					cells[i][j].getNeighborsMap().put(Direction.left, cells[i - 1][j]);
-				}
-				if (j > 0) {
-					cells[i][j].getNeighborsMap().put(Direction.down, cells[i][j - 1]);
-				}
-				if (i < Game.sizeX - 1) {
-					cells[i][j].getNeighborsMap().put(Direction.right, cells[i + 1][j]);
-				}
-				if (j < Game.sizeY - 1) {
-					cells[i][j].getNeighborsMap().put(Direction.up, cells[i][j + 1]);
-				}
+				List<Cell> tmp = new ArrayList<>();
+
+				if (i > 0) tmp.add(cells[i - 1][j]); // left
+				if (j < Game.sizeY - 1) tmp.add(cells[i][j + 1]); // up
+				if (i < Game.sizeX - 1) tmp.add(cells[i + 1][j]); // right
+				if (j > 0) tmp.add(cells[i][j - 1]); // down
+
+				cell(i, j).setNeighbors(tmp.toArray(new Cell[0]));
 			}
 		}
+
 	}
 
 	public static Cell cell(int cellX, int cellY) {
 		return cells[cellX][cellY];
 	}
 
-	public static Collection<Cell> neighborsCells(int cellX, int cellY) {
+	public static Cell[] neighbors(int cellX, int cellY) {
 		return cell(cellX, cellY).neighbors();
 	}
 
@@ -82,63 +107,8 @@ public class Game {
 		return (pointX - round(width / 2f)) % width != 0 || (pointY - round(width / 2f)) % width != 0;
 	}
 
-	public static void buildTimeMatrix(int tick, int nb, int sb, Direction direction, int posX, int posY, int[] result) {
-		int speed = calculateSpeed(nb, sb);
-
-		if (isNotCellCenter(posX, posY)) {
-			while (isNotCellCenter(posX, posY)) {
-				switch (direction) {
-					case up:
-						posY += speed;
-						break;
-					case down:
-						posY -= speed;
-						break;
-					case left:
-						posX -= speed;
-						break;
-					case right:
-						posX += speed;
-						break;
-					default:
-						throw new IllegalStateException("direction is null");
-				}
-				tick++;
-			}
-			if (nb > 0) nb--;
-			if (sb > 0) sb--;
-		}
-
-		Cell cell = point2cell(posX, posY);
-		speed = calculateSpeed(nb, sb);
-
-		if (result[cell.getIndex()] > tick) {
-			result[cell.getIndex()] = tick;
-			for (Direction nextDirection : cell.directions()) {
-				if (nextDirection.isOpposite(direction)) continue;
-
-				int nextX = posX;
-				int nextY = posY;
-				switch (nextDirection) {
-					case up:
-						nextY = posY + width;
-						break;
-					case down:
-						nextY = posY - width;
-						break;
-					case left:
-						nextX = nextX - width;
-						break;
-					case right:
-						nextX = nextX + width;
-						break;
-					default:
-						throw new IllegalStateException("direction is null");
-				}
-
-				buildTimeMatrix(tick + width / speed, nb - 1, sb - 1, nextDirection, nextX, nextY, result);
-			}
-		}
+	public static boolean isCellCenter(int pointX, int pointY) {
+		return (pointX - round(width / 2f)) % width == 0 && (pointY - round(width / 2f)) % width == 0;
 	}
 
 	/**
@@ -148,19 +118,20 @@ public class Game {
 	 * @return список захваченных игроком ячеек
 	 */
 	public static List<Cell> capture(PlayerState playerState) {
+		return capture(playerState.getPlayerTerritory(), playerState.getTail());
+	}
+
+	public static List<Cell> capture(PlayerTerritory playerTerritory, PlayerTail tail) {
 		List<Cell> result = new ArrayList<>();
 		int[] voids = new int[sizeX * sizeY];
 		List<Boolean> zones = new ArrayList<>();
-
-		PlayerTerritory playerTerritory = playerState.getPlayerTerritory();
-		PlayerTail tail = playerState.getTail();
 
 		for (int i = 0; i < sizeX; i++) {
 			for (int j = 0; j < sizeY; j++) {
 				Cell cell = cell(i, j);
 				if (!playerTerritory.get(cell) && !tail.isTail(cell)) {
 					if (voids[cell.getIndex()] == 0) {
-						boolean captured = markVoids(playerState, zones.size() + 1, voids, cell(i, j));
+						boolean captured = markVoids(playerTerritory, tail, zones.size() + 1, voids, cell(i, j));
 						zones.add(captured);
 					}
 					if (zones.get(voids[cell.getIndex()] - 1)) {
@@ -174,16 +145,13 @@ public class Game {
 		return result;
 	}
 
-	private static boolean markVoids(PlayerState playerState, int zone, int[] voids, Cell cell) {
+	private static boolean markVoids(PlayerTerritory playerTerritory, PlayerTail tail, int zone, int[] voids, Cell cell) {
 		voids[cell.getIndex()] = zone;
-
-		PlayerTerritory playerTerritory = playerState.getPlayerTerritory();
-		PlayerTail tail = playerState.getTail();
 
 		boolean result = !cell.isBorder();
 		for (Cell neighbor : cell.neighbors()) {
 			if (voids[neighbor.getIndex()] == 0 && !playerTerritory.get(neighbor) && !tail.isTail(neighbor))
-				result = markVoids(playerState, zone, voids, neighbor) && result;
+				result = markVoids(playerTerritory, tail, zone, voids, neighbor) && result;
 		}
 		return result;
 	}
@@ -203,6 +171,22 @@ public class Game {
 		}
 
 		return result;
+	}
+
+
+	public static Cell nextCell(Cell cell, Direction direction) {
+		switch (direction) {
+			case right:
+				return cell(cell.getX() + 1, cell.getY());
+			case left:
+				return cell(cell.getX() - 1, cell.getY());
+			case up:
+				return cell(cell.getX(), cell.getY() + 1);
+			case down:
+				return cell(cell.getX(), cell.getY() - 1);
+			default:
+				throw new IllegalStateException();
+		}
 	}
 
 

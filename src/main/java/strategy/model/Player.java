@@ -2,6 +2,7 @@ package strategy.model;
 
 import message.Direction;
 import strategy.Game;
+import strategy.TimeMatrixBuilder;
 
 import java.util.Collections;
 import java.util.Deque;
@@ -19,6 +20,7 @@ public class Player {
 
 	private final int index;
 	private PlayerState state;
+	private TimeMatrixBuilder timeMatrixBuilder;
 
 	private transient List<Cell> capturedCells = Collections.emptyList();
 
@@ -44,26 +46,26 @@ public class Player {
 
 		Set<Direction> result = EnumSet.noneOf(Direction.class);
 		Cell cell = Game.point2cell(state.getX(), state.getY());
-		for (Map.Entry<Direction, Cell> entry : cell.getNeighborsMap().entrySet()) {
-			if (state.getTail().isTail(entry.getValue()))
+		for (int i = 0; i < cell.directions().length; i++) {
+			if (state.getTail().isTail(cell.neighbors()[i]))
 				continue;
 
-			if (entry.getKey().isOpposite(state.getDirection()))
+			if (cell.directions()[i].isOpposite(state.getDirection()))
 				continue;
 
-			result.add(entry.getKey());
+			result.add(cell.directions()[i]);
 		}
 		return result;
 	}
 
-	public int move(Direction direction) {
+	public int move(Direction direction, Map<Cell, Bonus> bonusMap) {
 		Set<Direction> mpd = this.getPossibleDirections();
 		if (!mpd.contains(direction)) {
 			return 0;
 		}
 
 		capturedCells = Collections.emptyList();
-		int ticksForMove = Game.width / Game.calculateSpeed(state.getNitroCells(), state.getSlowCells());
+		int ticksForMove = Game.width / Game.calculateSpeed(state.getNb(), state.getSb());
 		state.setDirection(direction);
 
 		switch (direction) {
@@ -103,6 +105,18 @@ public class Player {
 			}
 		}
 
+		Bonus bonus = bonusMap.get(cell);
+		if (bonus != null) {
+			switch (bonus.getBonusType()) {
+				case n:
+					state.addNitro(bonus.getCells());
+					break;
+				case s:
+					state.addSlow(bonus.getCells());
+					break;
+			}
+		}
+
 		state.useBonuses();
 		return ticksForMove;
 	}
@@ -117,5 +131,13 @@ public class Player {
 
 	public List<Cell> getCapturedCells() {
 		return capturedCells;
+	}
+
+	public TimeMatrixBuilder getTimeMatrixBuilder() {
+		return timeMatrixBuilder;
+	}
+
+	public void setTimeMatrixBuilder(TimeMatrixBuilder timeMatrixBuilder) {
+		this.timeMatrixBuilder = timeMatrixBuilder;
 	}
 }
