@@ -46,14 +46,15 @@ public class Player {
 
 		Set<Direction> result = EnumSet.noneOf(Direction.class);
 		Cell cell = Game.point2cell(state.getX(), state.getY());
-		for (int i = 0; i < cell.directions().length; i++) {
-			if (state.getTail().isTail(cell.neighbors()[i]))
+		for (Direction direction : cell.directions()) {
+			if (direction.isOpposite(state.getDirection()))
 				continue;
 
-			if (cell.directions()[i].isOpposite(state.getDirection()))
+			Cell nextCell = cell.nextCell(direction);
+			if (state.getTail().isTail(nextCell))
 				continue;
 
-			result.add(cell.directions()[i]);
+			result.add(direction);
 		}
 		return result;
 	}
@@ -90,17 +91,17 @@ public class Player {
 
 		Cell cell = point2cell(state.getX(), state.getY());
 		if (tail.length() > 0) {
-			if (playerTerritory.get(cell)) {
+			if (playerTerritory.isTerritory(cell)) {
 				capturedCells = capture(state);
 				for (Cell capturedCell : capturedCells) {
-					playerTerritory.set(capturedCell);
+					playerTerritory.addTerritory(capturedCell);
 				}
 				tail.clear();
 			} else {
 				tail.addToTail(cell);
 			}
 		} else {
-			if (!playerTerritory.get(cell)) {
+			if (playerTerritory.isNotTerritory(cell)) {
 				tail.addToTail(cell);
 			}
 		}

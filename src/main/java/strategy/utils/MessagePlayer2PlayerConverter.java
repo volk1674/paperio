@@ -27,7 +27,7 @@ public class MessagePlayer2PlayerConverter {
 		Player result = new Player(getIndex(messageKey));
 
 		PlayerTerritory playerTerritory = new PlayerTerritory();
-		Arrays.stream(messagePlayer.territory).map(ints -> point2cell(ints[0], ints[1])).forEach(playerTerritory::set);
+		Arrays.stream(messagePlayer.territory).map(ints -> point2cell(ints[0], ints[1])).forEach(playerTerritory::addTerritory);
 		PlayerTail tail = new PlayerTail();
 		Arrays.stream(messagePlayer.lines).map(ints -> point2cell(ints[0], ints[1])).forEach(tail::addToTail);
 
@@ -54,7 +54,7 @@ public class MessagePlayer2PlayerConverter {
 
 		if (Game.isCellCenter(playerState.getX(), playerState.getY())) {
 			Cell cell = Game.point2cell(playerState.getX(), playerState.getY());
-			if (!playerState.getPlayerTerritory().get(cell) && !playerState.getTail().isTail(cell)) {
+			if (!playerState.getPlayerTerritory().isTerritory(cell) && !playerState.getTail().isTail(cell)) {
 				playerState.getTail().addToTail(cell);
 			}
 		}

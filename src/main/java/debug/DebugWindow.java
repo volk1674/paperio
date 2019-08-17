@@ -1,15 +1,15 @@
 package debug;
 
 import com.google.gson.Gson;
-import message.BonusType;
 import message.Direction;
-import message.Message;
+import strategy.BestStrategy;
 import strategy.Game;
-import strategy.Strategy;
+import strategy.MoveNode;
+import strategy.model.Bonus;
+import strategy.model.CalculationScore;
 import strategy.model.Cell;
-import strategy.model.Move;
-import strategy.model.MovePlan;
 import strategy.model.Player;
+import strategy.model.PlayerTail;
 import strategy.utils.MessagePlayer2PlayerConverter;
 
 import javax.imageio.ImageIO;
@@ -23,6 +23,7 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
@@ -37,20 +38,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.awt.Image.SCALE_DEFAULT;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static strategy.Game.point2cell;
 
 public class DebugWindow {
@@ -64,37 +60,86 @@ public class DebugWindow {
 			new Color(0x0088B0)};
 
 	private static MessagePlayer2PlayerConverter playerConverter = new MessagePlayer2PlayerConverter();
-	private static MovePlan debugPlan;
 	private static JFrame frame;
+	private static JTextField debugPlanField;
 	private static DrawPanel drawPanel;
 	private static JLabel timeToAnalise;
 	private static JLabel tickLabel;
-	private static MovePlan movePlan;
 	private static int playerIndexToAnalise = 1;
 	private static Player me;
-	private static List<MovePlan> movePlans;
 
-	private static Strategy strategy = new Strategy() {
-		@Override
-		protected List<MovePlan> generatePlans(Set<Direction> directions) {
-			if (debugPlan == null) {
-				movePlans = super.generatePlans(directions);
-			} else {
-				debugPlan.setScore(0);
-				debugPlan.setRisk(0);
-				movePlans = Collections.singletonList(debugPlan);
+
+	private static String planString(Collection<Direction> directions) {
+		StringBuilder buffer = new StringBuilder();
+		if (directions != null)
+			for (Direction direction : directions) {
+				switch (direction) {
+					case right:
+						buffer.append('r');
+						break;
+					case left:
+						buffer.append('l');
+						break;
+					case up:
+						buffer.append('u');
+						break;
+					case down:
+						buffer.append('d');
+						break;
+				}
 			}
-			return movePlans;
+		return buffer.toString();
+	}
+
+
+	private static BestStrategy strategy = new BestStrategy() {
+		ArrayDeque<Direction> directions = new ArrayDeque<>();
+		List<Direction> bestPlan;
+		double bestScore = Integer.MIN_VALUE;
+		double bestRisk = Integer.MAX_VALUE;
+
+
+		@Override
+		public void debug(Direction direction, CalculationScore score) {
+
+			movePlansModel.addElement(planString(bestPlan));
+			movePlansModel.addElement(direction.name() + " " + score.toString());
+			movePlansModel.addElement("");
+			bestScore = Integer.MIN_VALUE;
+			bestRisk = Integer.MAX_VALUE;
+		}
+
+		boolean f = false;
+
+		@Override
+		protected CalculationScore estimate(int tick, Cell currentCell, MoveNode node, PlayerTail tail, int nb, int sb, int ticksLeft) {
+			directions.addLast(node.getDirection());
+			f = true;
+			CalculationScore result = super.estimate(tick, currentCell, node, tail, nb, sb, ticksLeft);
+			if (f) {
+				if (result.getRisk() < bestRisk) {
+					bestPlan = new ArrayList<>(directions);
+					bestRisk = result.getRisk();
+					bestScore = result.getScore();
+				} else if (result.getRisk() == bestRisk && result.getScore() > bestScore) {
+					bestPlan = new ArrayList<>(directions);
+					bestRisk = result.getRisk();
+					bestScore = result.getScore();
+				}
+			}
+			f = false;
+			directions.removeLast();
+			return result;
 		}
 	};
 
 	private static int tick = 1;
 	private static VisioConfig visioConfig;
 	private static VisioConfig.Message tickMessage;
-	private static Map<Cell, List<BonusType>> bonusTypeMap;
+	private static Map<Cell, Bonus> bonusMap;
 
 	private static List<Player> playerList = new ArrayList<>();
-	private static MyListModel<MovePlan> movePlansModel = new MyListModel<>();
+	private static MyListModel<String> movePlansModel = new MyListModel<>();
 
 	private static void init() {
 		javax.swing.SwingUtilities.invokeLater(() -> {
@@ -132,15 +177,32 @@ public class DebugWindow {
 			}
 			tickLabel.setText("Тик: " + tick);
 
-
 			tickMessage = visioConfig.visio_info.get(tick);
 			if (tickMessage != null) {
 				tickMessage.players.forEach((key, messagePlayer) -> {
 					Player player = playerConverter.convert(key, messagePlayer);
 					playerList.add(player);
+
+					if (tick > 1) {
+						VisioConfig.Message prevTickMessage = visioConfig.visio_info.get(tick - 1);
+						int px = prevTickMessage.players.get(key).position[0];
+						int py = prevTickMessage.players.get(key).position[1];
+						if (player.getState().getX() > px) {
+							player.getState().setDirection(Direction.right);
+						} else if (player.getState().getX() < px) {
+							player.getState().setDirection(Direction.left);
+						} else if (player.getState().getY() < py) {
+							player.getState().setDirection(Direction.down);
+						} else if (player.getState().getY() > py) {
+							player.getState().setDirection(Direction.up);
+						} else {
+							player.getState().setDirection(null);
+						}
+					}
 				});
 
-				bonusTypeMap = stream(tickMessage.bonuses).collect(groupingBy(bonus -> point2cell(bonus.position[0], bonus.position[1]), HashMap::new, mapping(Message.Bonus::getType, toList())));
+				bonusMap = stream(tickMessage.bonuses)
+						.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
 			}
 		}
 
@@ -175,6 +237,14 @@ public class DebugWindow {
 		});
 
 
+		JButton lastButton2 = new JButton(createImageIcon("/icons/last.png"));
+		lastButton2.addActionListener(e -> {
+			int speed = (me != null) ? me.getState().getSpeed() : Game.speed;
+			tick += 10 * Game.width / speed;
+			update();
+		});
+
+
 		JButton firstButton = new JButton(createImageIcon("/icons/first.png"));
 		firstButton.addActionListener(e -> {
 			int speed = (me != null) ? me.getState().getSpeed() : Game.speed;
@@ -200,6 +270,7 @@ public class DebugWindow {
 		buttonPanel.add(prevButton);
 		buttonPanel.add(nextButton);
 		buttonPanel.add(lastButton);
+		buttonPanel.add(lastButton2);
 		buttonPanel.add(selectFileButton, BorderLayout.EAST);
 		buttonPanel.add(tickLabel);
 
@@ -210,6 +281,9 @@ public class DebugWindow {
 
 		JPanel analisePanel2 = new JPanel();
 		analisePanel2.setLayout(new BoxLayout(analisePanel2, 1));
+
+		debugPlanField = new JTextField();
+		analisePanel2.add(debugPlanField);
 
 
 		JPanel analisePanel = new JPanel();
@@ -237,20 +311,17 @@ public class DebugWindow {
 		analisePanel2.add(analisePanel);
 
 
-		JList<MovePlan> planList = new JList<>();
+		JList<String> planList = new JList<>();
 
 
 		JButton debugPlanButton = new JButton("debug");
 		debugPlanButton.addActionListener(e -> {
-			if (debugPlan != movePlans.get(planList.getSelectedIndex())) {
-				debugPlan = movePlans.get(planList.getSelectedIndex());
-				analise();
-			}
+
 		});
 
 		JButton cancelDebugPlanButton = new JButton("cancel");
 		cancelDebugPlanButton.addActionListener(e -> {
-			debugPlan = null;
+			debugPlanField.setText("");
 			analise();
 		});
 
@@ -279,21 +350,43 @@ public class DebugWindow {
 
 	private static void analise() {
 
-		movePlan = null;
+		movePlansModel.clear();
+		String debugPlan = debugPlanField.getText();
+		if (debugPlan != null && !debugPlan.isEmpty()) {
+			MoveNode rootNode = new MoveNode(null);
+			MoveNode currNode = rootNode;
+			for (char c : debugPlan.toCharArray()) {
+				switch (c) {
+					case 'u':
+						currNode = currNode.createPath(Direction.up, 1);
+						break;
+					case 'd':
+						currNode = currNode.createPath(Direction.down, 1);
+						break;
+					case 'l':
+						currNode = currNode.createPath(Direction.left, 1);
+						break;
+					case 'r':
+						currNode = currNode.createPath(Direction.right, 1);
+						break;
+					default:
+						throw new IllegalArgumentException("Unkonow plan");
+				}
+			}
+			strategy.setRootNode(rootNode);
+		} else {
+			strategy.setRootNode(new MoveNode());
+		}
+
 		movePlansModel.clear();
 		me = playerList.stream().filter(player -> player.getIndex() == playerIndexToAnalise).findFirst().orElse(null);
 		List<Player> other = playerList.stream().filter(player -> player.getIndex() != playerIndexToAnalise).collect(Collectors.toList());
 
 		if (me != null && !Game.isNotCellCenter(me.getState().getX(), me.getState().getY())) {
 			long start = System.currentTimeMillis();
-			strategy.calculate(tick, me, other, Collections.emptyMap());
+			strategy.calculate(tick, me, other, bonusMap);
 			long end = System.currentTimeMillis();
 			timeToAnalise.setText(String.valueOf(end - start));
-			movePlan = strategy.getBestPlans().stream().findFirst().orElse(null);
-
-			movePlans.sort(Comparator.reverseOrder());
-			movePlansModel.addAll(movePlans);
-
 		}
 		frame.repaint();
 	}
@@ -358,7 +451,7 @@ public class DebugWindow {
 					Color borderColor = Color.WHITE;
 
 					for (Player player : playerList) {
-						if (player.getState().getPlayerTerritory().get(cell)) {
+						if (player.getState().getPlayerTerritory().isTerritory(cell)) {
 							backgroundColor = playerColors[player.getIndex()];
 						}
 
@@ -385,35 +478,34 @@ public class DebugWindow {
 					g.drawRect(cellLeft + 3, cellTop + 3, cellSize - 5, cellSize - 5);
 
 
-					int timeLimit = strategy.getTickMatrix()[cell.getIndex()];
-					int tailLength = strategy.getTailMatrix()[cell.getIndex()];
+					int timeLimit = 0;
+					int capturedTick = 0;
+					if (strategy.getCellDetailsMatrix() != null) {
+						timeLimit = strategy.getCellDetailsMatrix()[cell.getIndex()].tick - tick;
+						capturedTick = strategy.getCellDetailsMatrix()[cell.getIndex()].capturedTick - tick;
+					}
 					g.setColor(Color.BLACK);
-
 
 					g.setColor(invertColor(backgroundColor));
 					g.drawString(String.valueOf(timeLimit), cellLeft + 8, cellTop + 12);
-					g.drawString(String.valueOf(tailLength), cellLeft + 8, cellTop + 22);
+					g.drawString(String.valueOf(capturedTick), cellLeft + 8, cellTop + 22);
 
-					if (bonusTypeMap != null) {
-						List<BonusType> bonusTypes = bonusTypeMap.get(cell);
-						if (bonusTypes != null) {
-							for (BonusType bonusType : bonusTypes) {
-								switch (bonusType) {
-									case saw:
-										g2.drawImage(sawImage, cellLeft + 8, cellTop + 16, null);
-										break;
-									case n:
-										g2.drawImage(nImage, cellLeft + 8, cellTop + 16, null);
-										break;
-									case s:
-										g2.drawImage(sImage, cellLeft + 8, cellTop + 16, null);
-										break;
-								}
+					if (bonusMap != null) {
+						Bonus bonus = bonusMap.get(cell);
+						if (bonus != null) {
+							switch (bonus.getBonusType()) {
+								case saw:
+									g2.drawImage(sawImage, cellLeft + 8, cellTop + 16, null);
+									break;
+								case n:
+									g2.drawImage(nImage, cellLeft + 8, cellTop + 16, null);
+									break;
+								case s:
+									g2.drawImage(sImage, cellLeft + 8, cellTop + 16, null);
+									break;
 							}
 						}
 					}
-
-
 				}
 			}
 
@@ -426,20 +518,20 @@ public class DebugWindow {
 			}
 
 
-			if (movePlan != null && me != null) {
-				g.setColor(Color.black);
-				Cell cell = Game.point2cell(me.getState().getX(), me.getState().getY());
-				for (Move move : movePlan.getMoves()) {
-					for (int i = 0; i < move.getLength() && cell != null; i++) {
-						cell = Game.nextCell(cell, move.getDirection());
-						if (cell != null) {
-							int centerX = boardLeft + cell.getX() * cellSize + cellSize / 2;
-							int centerY = dim.height - boardTop - cellSize * (cell.getY() + 1) + cellSize / 2;
-							g.drawOval(centerX, centerY, 4, 4);
-						}
-					}
-				}
-			}
+//			if (movePlanWithScore != null && me != null) {
+//				g.setColor(Color.black);
+//				Cell cell = Game.point2cell(me.getState().getX(), me.getState().getY());
+//				for (Move move : movePlanWithScore.getMoves()) {
+//					for (int i = 0; i < move.getLength() && cell != null; i++) {
+//						cell = cell.nextCell(move.getDirection());
+//						if (cell != null) {
+//							int centerX = boardLeft + cell.getX() * cellSize + cellSize / 2;
+//							int centerY = dim.height - boardTop - cellSize * (cell.getY() + 1) + cellSize / 2;
+//							g.drawOval(centerX, centerY, 4, 4);
+//						}
+//					}
+//				}
+//			}
 		}
 	}
 

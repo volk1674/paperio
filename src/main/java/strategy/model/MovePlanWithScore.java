@@ -2,12 +2,12 @@ package strategy.model;
 
 import java.util.Arrays;
 
-public class MovePlan implements Comparable<MovePlan> {
+public class MovePlanWithScore implements Comparable<MovePlanWithScore> {
 	private final Move[] moves;
 	private double score;
 	private double risk;
 
-	public MovePlan(Move... moves) {
+	public MovePlanWithScore(Move... moves) {
 		this.moves = moves;
 	}
 
@@ -37,7 +37,7 @@ public class MovePlan implements Comparable<MovePlan> {
 	}
 
 	@Override
-	public int compareTo(MovePlan other) {
+	public int compareTo(MovePlanWithScore other) {
 		int result = -Double.compare(this.risk, other.risk);
 		if (result == 0) {
 			result = Double.compare(this.score, other.score);
@@ -45,7 +45,7 @@ public class MovePlan implements Comparable<MovePlan> {
 		return result;
 	}
 
-	public boolean isPartOf(MovePlan other) {
+	public boolean isPartOf(MovePlanWithScore other) {
 		if (this.moves.length > other.moves.length) {
 			return false;
 		}

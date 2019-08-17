@@ -1,7 +1,9 @@
 import com.google.gson.Gson;
 import message.Direction;
 import message.Message;
+import strategy.BestStrategy;
 import strategy.Game;
+import strategy.SimpleStrategy;
 import strategy.Strategy;
 import strategy.model.Bonus;
 import strategy.model.Cell;
@@ -28,7 +30,8 @@ public class Main {
 	public static void main(String args[]) throws FileNotFoundException {
 		PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
 		MessagePlayer2PlayerConverter playerConverter = new MessagePlayer2PlayerConverter();
-		Strategy strategy = new Strategy();
+		//Strategy simpleStrategy = new SimpleStrategy();
+		Strategy simpleStrategy = new BestStrategy();
 
 		String line = "";
 		try {
@@ -68,7 +71,7 @@ public class Main {
 					Map<Cell, Bonus> bonusMap = stream(message.params.bonuses)
 							.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
 
-					out.print(commands.get(strategy.calculate(message.params.tick_num, me, others, bonusMap)));
+					out.print(commands.get(simpleStrategy.calculate(message.params.tick_num, me, others, bonusMap)));
 					out.flush();
 				}
 			}

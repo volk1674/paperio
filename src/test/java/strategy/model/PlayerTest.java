@@ -16,7 +16,7 @@ class PlayerTest {
 	void getPossibleDirections() {
 		PlayerTerritory playerTerritory = new PlayerTerritory();
 		PlayerTail tail = new PlayerTail();
-		playerTerritory.set(Game.point2cell(15, 45));
+		playerTerritory.addTerritory(Game.point2cell(15, 45));
 
 		Player player = new Player(1);
 		player.setState(new PlayerState(Direction.left, 0, 15, 45, playerTerritory, tail, 0, 0));

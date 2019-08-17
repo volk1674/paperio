@@ -16,19 +16,19 @@ class PlayerTerritoryTest {
 
 		for (int i = 0; i < Game.sizeX; i++) {
 			for (int j = 0; j < Game.sizeX; j++) {
-				Assert.assertFalse(playerTerritory.get(cell(i, j)));
-				playerTerritory.set(cell(i, j));
-				Assert.assertTrue(playerTerritory.get(cell(i, j)));
+				Assert.assertFalse(playerTerritory.isTerritory(cell(i, j)));
+				playerTerritory.addTerritory(cell(i, j));
+				Assert.assertTrue(playerTerritory.isTerritory(cell(i, j)));
 				playerTerritory.clear(cell(i, j));
-				Assert.assertFalse(playerTerritory.get(cell(i, j)));
-				if (ThreadLocalRandom.current().nextBoolean()) playerTerritory.set(cell(i, j));
+				Assert.assertFalse(playerTerritory.isTerritory(cell(i, j)));
+				if (ThreadLocalRandom.current().nextBoolean()) playerTerritory.addTerritory(cell(i, j));
 			}
 		}
 
 		PlayerTerritory clone = new PlayerTerritory(playerTerritory);
 		for (int i = 0; i < Game.sizeX; i++) {
 			for (int j = 0; j < Game.sizeX; j++) {
-				Assert.assertEquals(playerTerritory.get(cell(i, j)), clone.get(cell(i, j)));
+				Assert.assertEquals(playerTerritory.isTerritory(cell(i, j)), clone.isTerritory(cell(i, j)));
 			}
 		}
 	}
@@ -39,8 +39,8 @@ class PlayerTerritoryTest {
 		Cell cell_17x0 = cell(17,0);
 		Cell cell_16x30 = cell(16, 30);
 
-		playerTerritory.set(cell_17x0);
-		Assert.assertTrue(playerTerritory.get(cell_17x0));
-		Assert.assertFalse(playerTerritory.get(cell_16x30));
+		playerTerritory.addTerritory(cell_17x0);
+		Assert.assertTrue(playerTerritory.isTerritory(cell_17x0));
+		Assert.assertFalse(playerTerritory.isTerritory(cell_16x30));
 	}
 }

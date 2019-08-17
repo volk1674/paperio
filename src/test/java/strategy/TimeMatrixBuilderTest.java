@@ -10,17 +10,17 @@ import strategy.model.PlayerTerritory;
 import java.util.Collections;
 
 import static strategy.Game.cell;
-import static strategy.Game.width;
+import static strategy.Game.cell2point;
 
 class TimeMatrixBuilderTest {
 
 	private PlayerState createPlayerState() {
 		PlayerTerritory playerTerritory = new PlayerTerritory();
-		playerTerritory.set(cell(10, 10));
-		playerTerritory.set(cell(9, 9));
-		playerTerritory.set(cell(10, 9));
-		playerTerritory.set(cell(9, 10));
-		playerTerritory.set(cell(12, 15));
+		playerTerritory.addTerritory(cell(10, 10));
+		playerTerritory.addTerritory(cell(9, 9));
+		playerTerritory.addTerritory(cell(10, 9));
+		playerTerritory.addTerritory(cell(9, 10));
+		playerTerritory.addTerritory(cell(12, 15));
 
 
 		PlayerTail tail = new PlayerTail();
@@ -46,7 +46,7 @@ class TimeMatrixBuilderTest {
 		tail.addToTail(cell(13, 9));
 		tail.addToTail(cell(12, 9));
 
-		return new PlayerState(Direction.up, 0, 12 * width + width / 2, 9 * width + width / 2, playerTerritory, tail, 0, 0);
+		return new PlayerState(Direction.left, 0, cell2point(12), cell2point(9), playerTerritory, tail, 0, 0);
 	}
 
 
@@ -57,7 +57,12 @@ class TimeMatrixBuilderTest {
 			long start = System.currentTimeMillis();
 			TimeMatrixBuilder timeMatrixBuilder = new TimeMatrixBuilder();
 			timeMatrixBuilder.buildTimeMatrix(1, createPlayerState(), Collections.emptyMap());
+
+
+
+
 			System.out.println(System.currentTimeMillis() - start);
+
 
 
 			Assert.assertEquals(49, timeMatrixBuilder.getTickMatrix()[cell(10, 3).getIndex()]);
@@ -65,7 +70,7 @@ class TimeMatrixBuilderTest {
 			Assert.assertEquals(1, timeMatrixBuilder.getTailMatrix()[cell(10, 2).getIndex()]);
 			Assert.assertEquals(22, timeMatrixBuilder.getTailMatrix()[cell(11, 9).getIndex()]);
 			Assert.assertEquals(13, timeMatrixBuilder.getTickMatrix()[cell(10, 9).getIndex()]);
-			Assert.assertEquals(23, timeMatrixBuilder.getTailMatrix()[cell(10, 9).getIndex()]);
+			Assert.assertEquals(0, timeMatrixBuilder.getTailMatrix()[cell(10, 9).getIndex()]);
 
 			Assert.assertEquals(19, timeMatrixBuilder.getTickMatrix()[cell(10, 10).getIndex()]);
 			Assert.assertEquals(0, timeMatrixBuilder.getTailMatrix()[cell(10, 10).getIndex()]);
@@ -76,7 +81,7 @@ class TimeMatrixBuilderTest {
 
 			Assert.assertEquals(1, timeMatrixBuilder.getTailMatrix()[cell(10, 2).getIndex()]);
 			Assert.assertEquals(33, timeMatrixBuilder.getTailMatrix()[cell(16, 3).getIndex()]);
-			Assert.assertEquals(27, timeMatrixBuilder.getTailMatrix()[cell(12, 15).getIndex()]);
+			Assert.assertEquals(0, timeMatrixBuilder.getTailMatrix()[cell(12, 15).getIndex()]);
 			Assert.assertEquals(0, timeMatrixBuilder.getTailMatrix()[cell(12, 16).getIndex()]);
 			Assert.assertEquals(0, timeMatrixBuilder.getTailMatrix()[cell(13, 15).getIndex()]);
 			Assert.assertEquals(1, timeMatrixBuilder.getTailMatrix()[cell(14, 15).getIndex()]);

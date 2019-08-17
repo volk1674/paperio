@@ -1,6 +1,5 @@
 package strategy;
 
-import message.BonusType;
 import message.Direction;
 import strategy.model.Bonus;
 import strategy.model.Cell;
@@ -76,12 +75,12 @@ public class TimeMatrixBuilder {
 
 
 			cell = point2cell(posX, posY);
-			Cell prev = Game.nextCell(cell, direction.opposite());
+			Cell prev = cell.nextCell(direction.opposite());
 			tickMatrix1[prev.getIndex()] = startTick;
 			tickMatrix2[prev.getIndex()] = startTick;
 			tailMatrix1[prev.getIndex()] = tail.length();
 			tailMatrix2[prev.getIndex()] = tail.length();
-			if (!state.getPlayerTerritory().get(cell)) {
+			if (!state.getPlayerTerritory().isTerritory(cell)) {
 				tail.addToTail(cell);
 				cutTailFlag = true;
 			}
@@ -108,12 +107,11 @@ public class TimeMatrixBuilder {
 			tickMatrix2[cell.getIndex()] = tick;
 			tailMatrix2[cell.getIndex()] = tailLength;
 
-			for (int i = 0; i < cell.directions().length; i++) {
-				Direction nextDirection = cell.directions()[i];
-				Cell nextCell = cell.neighbors()[i];
+			for (Direction nextDirection : cell.directions()) {
+				Cell nextCell = cell.nextCell(nextDirection);
 				if (nextDirection.isOpposite(direction)) continue;
 				int speed = calculateSpeed(nb, sb);
-				buildTimeMatrix2(tick + Game.width / speed, nb > 0 ? nb - 1 : 0, sb > 0 ? sb - 1 : 0, nextDirection, nextCell, playerTerritory.get(cell) ? 0 : tailLength + 1, playerTerritory);
+				buildTimeMatrix2(tick + Game.width / speed, nb > 0 ? nb - 1 : 0, sb > 0 ? sb - 1 : 0, nextDirection, nextCell, playerTerritory.isTerritory(cell) ? 0 : tailLength + 1, playerTerritory);
 			}
 		}
 	}
@@ -123,12 +121,12 @@ public class TimeMatrixBuilder {
 			tickMatrix1[cell.getIndex()] = tick;
 			tailMatrix1[cell.getIndex()] = tail.length();
 
-			if (playerTerritory.get(cell)) {
+			if (playerTerritory.isTerritory(cell)) {
 				// находим захваченные клетки
 				List<Cell> capturedCells = capture(playerTerritory, tail);
 				playerTerritory = new PlayerTerritory(playerTerritory);
 				for (Cell capturedCell : capturedCells) {
-					playerTerritory.set(capturedCell);
+					playerTerritory.addTerritory(capturedCell);
 					if (tick <= tickMatrix1[capturedCell.getIndex()]) {  // все захваченные клеточки становятся ядовитыми на тике захвата
 						tailMatrix1[capturedCell.getIndex()] = 0;
 						tickMatrix1[capturedCell.getIndex()] = tick;
@@ -136,9 +134,8 @@ public class TimeMatrixBuilder {
 				}
 				buildTimeMatrix2(tick, nb, sb, direction, cell, tail.length(), playerTerritory);
 			} else {
-				for (int i = 0; i < cell.directions().length; i++) {
-					Direction nextDirection = cell.directions()[i];
-					Cell nextCell = cell.neighbors()[i];
+				for (Direction nextDirection : cell.directions()) {
+					Cell nextCell = cell.nextCell(nextDirection);
 					if (nextDirection.isOpposite(direction) || tail.isTail(nextCell)) continue;
 					int speed = calculateSpeed(nb, sb);
 					tail.addToTail(nextCell);

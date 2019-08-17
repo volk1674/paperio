@@ -11,11 +11,15 @@ public class PlayerTerritory extends BitSet {
 		this.or(other);
 	}
 
-	public boolean get(Cell cell) {
+	public boolean isTerritory(Cell cell) {
 		return this.get(cell.getIndex());
 	}
 
-	public void set(Cell cell) {
+	public boolean isNotTerritory(Cell cell) {
+		return !get(cell.getIndex());
+	}
+
+	public void addTerritory(Cell cell) {
 		this.set(cell.getIndex());
 	}
 

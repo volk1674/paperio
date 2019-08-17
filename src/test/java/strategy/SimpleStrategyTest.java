@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 import static strategy.Game.point2cell;
 
-class StrategyTest {
+class SimpleStrategyTest {
 
 	@Test
 	void calculate() {
@@ -45,7 +45,7 @@ class StrategyTest {
 				.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
 
 
-		Strategy strategy = new Strategy() {
+		SimpleStrategy simpleStrategy = new SimpleStrategy() {
 //			@Override
 //			protected void generatePlans(Set<Direction> directions, List<MovePlan> plans) {
 //				s
@@ -53,7 +53,7 @@ class StrategyTest {
 //			}
 		};
 
-		Direction result = strategy.calculate(message.params.tick_num, me, others, bonusMap);
+		Direction result = simpleStrategy.calculate(message.params.tick_num, me, others, bonusMap);
 		Assert.assertEquals(result, Direction.left);
 
 	}
