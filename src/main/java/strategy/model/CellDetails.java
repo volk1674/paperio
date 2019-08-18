@@ -1,6 +1,8 @@
 package strategy.model;
 
 public class CellDetails {
+	public int playerIndex;
+
 	/**
 	 * тик полного заполнения клетки
 	 */

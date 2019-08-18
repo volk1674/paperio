@@ -2,8 +2,6 @@ package strategy.utils;
 
 import message.BonusType;
 import message.Message;
-import strategy.Game;
-import strategy.model.Cell;
 import strategy.model.Player;
 import strategy.model.PlayerState;
 import strategy.model.PlayerTail;
@@ -51,13 +49,6 @@ public class MessagePlayer2PlayerConverter {
 				nitroCells,
 				slowCells
 		);
-
-		if (Game.isCellCenter(playerState.getX(), playerState.getY())) {
-			Cell cell = Game.point2cell(playerState.getX(), playerState.getY());
-			if (!playerState.getPlayerTerritory().isTerritory(cell) && !playerState.getTail().isTail(cell)) {
-				playerState.getTail().addToTail(cell);
-			}
-		}
 
 		result.setState(playerState);
 

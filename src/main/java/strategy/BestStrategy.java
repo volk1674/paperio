@@ -41,6 +41,7 @@ public class BestStrategy implements Strategy {
 	private PlayerTerritory territory;
 	private boolean startedOnOwnTerritory;
 	private List<Player> others;
+	private Player me;
 	private PlayerTerritory otherPlayersHeads = new PlayerTerritory();
 	private PlayerTerritory otherPlayerTails = new PlayerTerritory();
 
@@ -56,11 +57,12 @@ public class BestStrategy implements Strategy {
 		this.others = others;
 		otherPlayersHeads.clear();
 		otherPlayerTails.clear();
+		this.me = me;
 
 		simpleTickMatrixBuilder = new SimpleTickMatrixBuilder(tick, bonusMap);
 		AnalyticsBuilder analyticsBuilder = new AnalyticsBuilder(tick, bonusMap);
 		for (Player player : others) {
-			analyticsBuilder.build(player.getState());
+			analyticsBuilder.build(player);
 			simpleTickMatrixBuilder.build(player.getState());
 			otherPlayerTerritory.or(player.getState().getPlayerTerritory());
 			otherPlayerTails.or(player.getState().getTail());
@@ -166,23 +168,57 @@ public class BestStrategy implements Strategy {
 		if (ccd.enterTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
 			if (ccd.enterTick < nextTick && ccd.enterTick >= tick) {
 				// todo добавить условие проверки что соперник находится на одной линии и он пытается догнать и не сможет
-				if (ccd.enterTailLength > tail.length() && startCalculationTick == tick) {
-					rate += 30;
+				if (ccd.enterTailLength > tail.length()) {
+					rate += 30. / (1 + tick - startCalculationTick);
 				} else if (ccd.enterTailLength < tail.length()) {
 					if (startedOnOwnTerritory) {
 						return MINIMAL_SCORE;
 					} else {
-						risk += 100;
+						Player cp = others.stream().filter(player -> player.getIndex() == ccd.playerIndex).findAny().orElse(null);
+						if (cp != null) {
+							int mx = me.getState().getX();
+							int my = me.getState().getX();
+							int ox = cp.getState().getX();
+							int oy = cp.getState().getX();
+							if (mx == ox && my > oy && node.getDirection() == Direction.up) {
+								risk += .1;
+							} else if (mx == ox && my < oy && node.getDirection() == Direction.down) {
+								risk += .1;
+							} else if (mx > ox && my == oy && node.getDirection() == Direction.right) {
+								risk += .1;
+							} else if (mx < ox && my == oy && node.getDirection() == Direction.left) {
+								risk += .1;
+							} else {
+								risk += 100;
+							}
+						}
 					}
 				} else {
-					risk++;
+					Player cp = others.stream().filter(player -> player.getIndex() == ccd.playerIndex).findAny().orElse(null);
+					if (cp != null) {
+						int mx = me.getState().getX();
+						int my = me.getState().getY();
+						int ox = cp.getState().getX();
+						int oy = cp.getState().getY();
+						if (mx == ox && my > oy && node.getDirection() == Direction.up) {
+							risk += .1;
+						} else if (mx == ox && my < oy && node.getDirection() == Direction.down) {
+							risk += .1;
+						} else if (mx > ox && my == oy && node.getDirection() == Direction.right) {
+							risk += .1;
+						} else if (mx < ox && my == oy && node.getDirection() == Direction.left) {
+							risk += .1;
+						} else {
+							risk += 1;
+						}
+					}
 				}
 			}
 
 			if (tick + 1 < ncd.tick && ncd.enterTick < nextTick) {
 				// todo добавить условие проверки что соперник убегает и я его не догоняю
-				if (ncd.enterTailLength > tail.length() && startCalculationTick == tick) {
-					rate += 30;
+				if (ncd.enterTailLength > tail.length()) {
+					rate += 30. / (1 + tick - startCalculationTick);
 				} else if (ncd.enterTailLength < tail.length()) {
 					if (startedOnOwnTerritory) {
 						return MINIMAL_SCORE;
@@ -193,8 +229,8 @@ public class BestStrategy implements Strategy {
 					risk++;
 				}
 			} else if (tick + 1 < ncd.leaveTick && ncd.tick < tick) {
-				if (ncd.leaveTailLength > tail.length() && startCalculationTick == tick) {
-					rate += 30;
+				if (ncd.leaveTailLength > tail.length()) {
+					rate += 30. / (1 + tick - startCalculationTick);
 				} else if (ncd.leaveTailLength < tail.length()) {
 					if (startedOnOwnTerritory) {
 						return MINIMAL_SCORE;
@@ -210,7 +246,6 @@ public class BestStrategy implements Strategy {
 		if (otherPlayerTails.isTerritory(nextCell) && ncd.capturedTick >= nextTick && (ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH) {
 			rate += 30;
 		}
-
 
 		if (nb > 0) nb--;
 		if (sb > 0) sb--;

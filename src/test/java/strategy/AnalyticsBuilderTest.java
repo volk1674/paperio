@@ -20,7 +20,7 @@ class AnalyticsBuilderTest {
 		while (n > 0) {
 			long start = System.currentTimeMillis();
 			AnalyticsBuilder analyticsBuilder = new AnalyticsBuilder(1, Collections.emptyMap());
-			analyticsBuilder.build(TestUtils.createPlayerState());
+			analyticsBuilder.build(TestUtils.createPlayer());
 			System.out.println(System.currentTimeMillis() - start);
 
 			Assert.assertEquals(13, analyticsBuilder.getCellDetails(cell(9, 5)).capturedTick);
@@ -47,7 +47,7 @@ class AnalyticsBuilderTest {
 		while (n > 0) {
 			long start = System.currentTimeMillis();
 			AnalyticsBuilder analyticsBuilder = new AnalyticsBuilder(1, bonusMap);
-			analyticsBuilder.build(TestUtils.createPlayerState());
+			analyticsBuilder.build(TestUtils.createPlayer());
 
 			Assert.assertEquals(8, analyticsBuilder.getCellDetails(cell(12, 11)).enterTick);
 			Assert.assertEquals(13, analyticsBuilder.getCellDetails(cell(12, 11)).tick);

@@ -4,6 +4,7 @@ import message.Direction;
 import strategy.model.Bonus;
 import strategy.model.Cell;
 import strategy.model.CellDetails;
+import strategy.model.Player;
 import strategy.model.PlayerState;
 import strategy.model.PlayerTail;
 import strategy.model.PlayerTerritory;
@@ -28,6 +29,7 @@ public class AnalyticsBuilder {
 	private final int startTick;
 
 	private PlayerTerritory territory;
+	private int playerIndex;
 
 	public AnalyticsBuilder(int startTick, Map<Cell, Bonus> bonusMap) {
 		cellDetailsMatrix = new CellDetails[Game.sizeX * Game.sizeY];
@@ -42,8 +44,10 @@ public class AnalyticsBuilder {
 		}
 	}
 
-	public void build(PlayerState state) {
+	public void build(Player player) {
 		int tick = startTick;
+		PlayerState state = player.getState();
+		playerIndex = player.getIndex();
 
 		int posX = state.getX();
 		int posY = state.getY();
@@ -92,6 +96,7 @@ public class AnalyticsBuilder {
 		cellDetails.enterTick = startTick;
 		cellDetails.tick = tick;
 		cellDetails.enterTailLength = tail.length() > 0 ? tail.length() - 1 : 0;
+		cellDetails.playerIndex = playerIndex;
 
 		if (tail.length() > 0 && territory.isTerritory(cell)) {
 			cellDetails.captureTargetTick = tick;
@@ -117,6 +122,10 @@ public class AnalyticsBuilder {
 		if (nextTick < cellDetails.leaveTick) {
 			cellDetails.leaveTick = nextTick;
 			cellDetails.leaveTailLength = tail.length();
+		} else if (nextTick == cellDetails.leaveTick) {
+			if (tail.length() < cellDetails.leaveTailLength) {
+				cellDetails.leaveTailLength = tail.length();
+			}
 		}
 
 		for (Direction nextDirection : cell.directions()) {
@@ -128,6 +137,11 @@ public class AnalyticsBuilder {
 				nextCellDetails.tick = nextTick;
 				nextCellDetails.enterTailLength = tail.length();
 				nextCellDetails.enterTick = tick + 1;
+				nextCellDetails.playerIndex = playerIndex;
+			} else if (nextTick == nextCellDetails.tick) {
+				if (tail.length() < nextCellDetails.enterTailLength) {
+					nextCellDetails.enterTailLength = tail.length();
+				}
 			}
 
 			if (nextTick <= nextCellDetails.tick + MAX_LAG) {

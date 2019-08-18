@@ -50,7 +50,6 @@ public class SimpleStrategy implements Strategy {
 			otherPlayerTerritory.or(player.getState().getPlayerTerritory());
 
 			TimeMatrixBuilder timeMatrixBuilder = new TimeMatrixBuilder();
-			player.setTimeMatrixBuilder(timeMatrixBuilder);
 			timeMatrixBuilder.buildTimeMatrix(tick, player.getState(), bonusMap);
 
 			TimeMatrixBuilder.mergeTickMatrix(timeMatrixBuilder.getTickMatrix(), timeMatrixBuilder.getTailMatrix(), tickMatrix, tailMatrix);

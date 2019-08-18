@@ -1,6 +1,7 @@
 package strategy;
 
 import message.Direction;
+import strategy.model.Player;
 import strategy.model.PlayerState;
 import strategy.model.PlayerTail;
 import strategy.model.PlayerTerritory;
@@ -42,5 +43,12 @@ public class TestUtils {
 		tail.addToTail(cell(12, 9));
 
 		return new PlayerState(Direction.left, 0, cell2point(12), cell2point(9), playerTerritory, tail, 0, 0);
+	}
+
+
+	public static Player createPlayer() {
+		Player player = new Player(1);
+		player.setState(createPlayerState());
+		return player;
 	}
 }

@@ -480,15 +480,17 @@ public class DebugWindow {
 
 					int timeLimit = 0;
 					int capturedTick = 0;
+					int enterTailLength = 0;
 					if (strategy.getCellDetailsMatrix() != null) {
 						timeLimit = strategy.getCellDetailsMatrix()[cell.getIndex()].tick - tick;
 						capturedTick = strategy.getCellDetailsMatrix()[cell.getIndex()].capturedTick - tick;
+						enterTailLength = strategy.getCellDetailsMatrix()[cell.getIndex()].enterTailLength;
 					}
 					g.setColor(Color.BLACK);
 
 					g.setColor(invertColor(backgroundColor));
 					g.drawString(String.valueOf(timeLimit), cellLeft + 8, cellTop + 12);
-					g.drawString(String.valueOf(capturedTick), cellLeft + 8, cellTop + 22);
+					g.drawString(String.valueOf(enterTailLength), cellLeft + 8, cellTop + 22);
 
 					if (bonusMap != null) {
 						Bonus bonus = bonusMap.get(cell);

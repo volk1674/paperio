@@ -2,7 +2,6 @@ package strategy.model;
 
 import message.Direction;
 import strategy.Game;
-import strategy.TimeMatrixBuilder;
 
 import java.util.Collections;
 import java.util.Deque;
@@ -20,7 +19,6 @@ public class Player {
 
 	private final int index;
 	private PlayerState state;
-	private TimeMatrixBuilder timeMatrixBuilder;
 
 	private transient List<Cell> capturedCells = Collections.emptyList();
 
@@ -132,13 +130,5 @@ public class Player {
 
 	public List<Cell> getCapturedCells() {
 		return capturedCells;
-	}
-
-	public TimeMatrixBuilder getTimeMatrixBuilder() {
-		return timeMatrixBuilder;
-	}
-
-	public void setTimeMatrixBuilder(TimeMatrixBuilder timeMatrixBuilder) {
-		this.timeMatrixBuilder = timeMatrixBuilder;
 	}
 }
