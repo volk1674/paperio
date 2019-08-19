@@ -1,5 +1,7 @@
 package strategy.model;
 
+import message.Direction;
+
 public class CellDetails {
 	public int playerIndex;
 
@@ -17,6 +19,11 @@ public class CellDetails {
 	 * тик выхода из клетки
 	 */
 	public int leaveTick;
+
+	/**
+	 * Направление выхода из клетки
+	 */
+	public Direction leaveDirection;
 
 	/**
 	 * рамер хвоста при входе в клетку (минимальной при этом времени входа)
@@ -41,24 +48,37 @@ public class CellDetails {
 	public int captureTargetTick;
 
 
+	/**
+	 * самый ранний тик в который по этой клетке может быть нанесен удар пилой
+	 */
+	public int sawTick;
+
+	/**
+	 * направление в котом может быть нанесен удар пилой
+	 */
+	public Direction sawDirection;
+
+
 	public CellDetails(int maxTick) {
 		this.tick = maxTick;
 		this.enterTick = maxTick;
 		this.capturedTick = maxTick;
 		this.leaveTick = maxTick;
 		this.captureTargetTick = maxTick;
+		this.sawTick = maxTick;
 	}
 
 
 	@Override
 	public String toString() {
-		return "CellDetails{" +
+		return "{" +
 				"tick=" + tick +
 				", enterTick=" + enterTick +
 				", leaveTick=" + leaveTick +
 				", enterTailLength=" + enterTailLength +
 				", leaveTailLength=" + leaveTailLength +
 				", capturedTick=" + capturedTick +
+				", sawTick=" + sawTick +
 				'}';
 	}
 }

@@ -164,88 +164,126 @@ public class BestStrategy implements Strategy {
 			risk = -ticksLeft;
 		}
 
+		if (ccd.sawTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
+			if (ccd.sawTick >= tick && ccd.sawTick < nextTick) {
+				risk += 12. / (1 + ccd.sawTick - startCalculationTick);
+			}
+		}
 
-		if (ccd.enterTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
-			if (ccd.enterTick < nextTick && ccd.enterTick >= tick) {
-				// todo добавить условие проверки что соперник находится на одной линии и он пытается догнать и не сможет
-				if (ccd.enterTailLength > tail.length()) {
-					rate += 30. / (1 + tick - startCalculationTick);
-				} else if (ccd.enterTailLength < tail.length()) {
-					if (startedOnOwnTerritory) {
-						return MINIMAL_SCORE;
+		if (ncd.sawTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
+			if (ncd.sawTick > tick && ncd.sawTick <= nextTick) {
+				risk += 12. / (1 + ccd.sawTick - startCalculationTick);
+			}
+		}
+
+		{ // расчет столкновения головами
+			int ncdEnterTick = ncd.enterTick;
+			int ncdLeaveTick = ncd.leaveTick;
+			int ncdTick = ncd.tick;
+			Direction ncdLeaveDirection = ncd.leaveDirection;
+			int ncdLeaveTailLength = ncd.leaveTailLength;
+			int ncdEnterTailLength = ncd.enterTailLength;
+
+			int ccdTick = ccd.tick;
+			int ccdEnterTick = ccd.enterTick;
+			int ccdEnterTailLength = ccd.enterTailLength;
+
+			if (ncdTick - startCalculationTick >= AnalyticsBuilder.MAXIMUM_DEPTH) {
+				ncdTick = max(ncdTick, simpleTickMatrixBuilder.getTick(nextCell));
+				ncdEnterTick = max(ncdEnterTick, ncdTick - 5);
+				ncdLeaveTick = max(ncdLeaveTick, ncdTick + 6);
+			}
+
+			if (ccdTick - startCalculationTick >= AnalyticsBuilder.MAXIMUM_DEPTH) {
+				ccdTick = max(ccdTick, simpleTickMatrixBuilder.getTick(currentCell));
+				ccdEnterTick = max(ccdEnterTick, ccdTick - 5);
+			}
+
+			// находимся в клетке и надо проверить успеем ли выйти из клетки
+			if (ccdEnterTick < nextTick && ccdEnterTick >= tick) {
+
+				Direction enterDirection = null;
+				Player cp = others.stream().filter(player -> player.getIndex() == ccd.playerIndex).findAny().orElse(null);
+				if (cp != null) {
+					int mx = Game.cell2point(currentCell.getX());
+					int my = Game.cell2point(currentCell.getY());
+					int ox = cp.getState().getX();
+					int oy = cp.getState().getY();
+					if (mx == ox && my > oy) {
+						enterDirection = Direction.up;
+					} else if (mx == ox && my < oy) {
+						enterDirection = Direction.down;
+					} else if (mx > ox && my == oy) {
+						enterDirection = Direction.right;
+					} else if (mx < ox && my == oy && node.getDirection() == Direction.left) {
+						enterDirection = Direction.left;
+					}
+				}
+
+				if (enterDirection != node.getDirection() || nextTick > ccdTick) {
+					if (tail.length() < ccdEnterTailLength) {
+						rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+					} else if (tail.length() == ncdLeaveTailLength) {
+						// погибнем вместе
+						risk++;
 					} else {
-						Player cp = others.stream().filter(player -> player.getIndex() == ccd.playerIndex).findAny().orElse(null);
-						if (cp != null) {
-							int mx = me.getState().getX();
-							int my = me.getState().getX();
-							int ox = cp.getState().getX();
-							int oy = cp.getState().getX();
-							if (mx == ox && my > oy && node.getDirection() == Direction.up) {
-								risk += .1;
-							} else if (mx == ox && my < oy && node.getDirection() == Direction.down) {
-								risk += .1;
-							} else if (mx > ox && my == oy && node.getDirection() == Direction.right) {
-								risk += .1;
-							} else if (mx < ox && my == oy && node.getDirection() == Direction.left) {
-								risk += .1;
+						// наш хвост длинее :(
+						if (startedOnOwnTerritory) {
+							return MINIMAL_SCORE;
+						} else {
+							risk += 5;
+						}
+					}
+				}
+			}
+
+			// соперник или уже в клетке или может войти в нее до того как я в нее полностью войду.
+			// ncd.tick > ncd.leaveTick - может быть только для клеток в которых уже двигается соперник на начале расчета
+			if ((ncdEnterTick < nextTick || tick == startCalculationTick && ncdTick > ncdLeaveTick) && ncdLeaveTick > tick) {
+				if (ncdTick <= tick + 1 || tick == startCalculationTick && ncdTick > ncdLeaveTick) {
+					// соперник уже полностью в клетке или уже пошел на выход и мы его догоняем
+					if (ncdLeaveDirection != node.getDirection() || ncdLeaveTick > nextTick) {
+						if (tail.length() < ncdLeaveTailLength) {
+							// наш хвост короче и мы его победим :)
+							rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+						} else if (tail.length() == ncdLeaveTailLength) {
+							// погибнем вместе
+							risk++;
+						} else {
+							// наш хвост длинее :(
+							if (startedOnOwnTerritory) {
+								return MINIMAL_SCORE;
 							} else {
-								risk += 100;
+								risk += 5;
 							}
 						}
 					}
 				} else {
-					Player cp = others.stream().filter(player -> player.getIndex() == ccd.playerIndex).findAny().orElse(null);
-					if (cp != null) {
-						int mx = me.getState().getX();
-						int my = me.getState().getY();
-						int ox = cp.getState().getX();
-						int oy = cp.getState().getY();
-						if (mx == ox && my > oy && node.getDirection() == Direction.up) {
-							risk += .1;
-						} else if (mx == ox && my < oy && node.getDirection() == Direction.down) {
-							risk += .1;
-						} else if (mx > ox && my == oy && node.getDirection() == Direction.right) {
-							risk += .1;
-						} else if (mx < ox && my == oy && node.getDirection() == Direction.left) {
-							risk += .1;
+					// соперник только входит в клетку
+					if (tail.length() < ncdEnterTailLength) {
+						// наш хвост короче и мы его победим :)
+						rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+					} else if (tail.length() == ncdEnterTailLength) {
+						// погибнем вместе
+						risk++;
+					} else {
+						// наш хвост длинее :(
+						if (startedOnOwnTerritory) {
+							return MINIMAL_SCORE;
 						} else {
-							risk += 1;
+							risk += 5;
 						}
 					}
 				}
 			}
+		}
 
-			if (tick + 1 < ncd.tick && ncd.enterTick < nextTick) {
-				// todo добавить условие проверки что соперник убегает и я его не догоняю
-				if (ncd.enterTailLength > tail.length()) {
-					rate += 30. / (1 + tick - startCalculationTick);
-				} else if (ncd.enterTailLength < tail.length()) {
-					if (startedOnOwnTerritory) {
-						return MINIMAL_SCORE;
-					} else {
-						risk += 100;
-					}
-				} else {
-					risk++;
-				}
-			} else if (tick + 1 < ncd.leaveTick && ncd.tick < tick) {
-				if (ncd.leaveTailLength > tail.length()) {
-					rate += 30. / (1 + tick - startCalculationTick);
-				} else if (ncd.leaveTailLength < tail.length()) {
-					if (startedOnOwnTerritory) {
-						return MINIMAL_SCORE;
-					} else {
-						risk += 100;
-					}
-				} else {
-					risk++;
-				}
+		if ((ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH && otherPlayerTails.isTerritory(nextCell)) {
+			if (nextTick < ncd.capturedTick) {
+				rate += 30;
 			}
 		}
 
-		if (otherPlayerTails.isTerritory(nextCell) && ncd.capturedTick >= nextTick && (ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH) {
-			rate += 30;
-		}
 
 		if (nb > 0) nb--;
 		if (sb > 0) sb--;
@@ -258,7 +296,7 @@ public class BestStrategy implements Strategy {
 					break;
 				case s:
 					sb += bonus.getCells();
-					rate -= bonus.getCells() / 2;
+					rate -= bonus.getCells();
 					break;
 				case saw:
 					rate += 5;
@@ -281,17 +319,17 @@ public class BestStrategy implements Strategy {
 			List<Cell> capturedCells = capture(territory, tail);
 
 			if ((ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH && ncd.capturedTick < nextTick) {
-				risk += 100;
+				risk += 10;
 			}
 
 			rate += capturedCells.size();
 			for (Cell capturedCell : capturedCells) {
 				if (otherPlayerTerritory.isTerritory(capturedCell)) {
 					rate += 4;
+				} else {
+					rate -= 2 * sqrt(pow2(1. * abs(sizeX / 2. - capturedCell.getX()) / sizeX) +
+							pow2(1. * abs(sizeY / 2. - capturedCell.getY()) / sizeY));
 				}
-
-				rate -= 2 * sqrt(pow2(1. * abs(sizeX / 2. - capturedCell.getX()) / sizeX) +
-						pow2(1. * abs(sizeY / 2. - capturedCell.getY()) / sizeY));
 
 
 				bonus = bonusMap.get(capturedCell);
@@ -324,12 +362,12 @@ public class BestStrategy implements Strategy {
 				}
 
 				if (otherPlayersHeads.get(capturedCell.getIndex())) {
-					rate *= 2;
+					rate *= 1.5;
 				}
 
 				CellDetails captureCellDetail = cellDetailsMatrix[capturedCell.getIndex()];
-				if (captureCellDetail.captureTargetTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH && captureCellDetail.captureTargetTick < nextTick) {
-					rate += 150;
+				if (captureCellDetail.captureTargetTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH && captureCellDetail.captureTargetTick > nextTick) {
+					rate += 1;
 				}
 			}
 
@@ -390,7 +428,7 @@ public class BestStrategy implements Strategy {
 	}
 
 
-	double pow2(double v) {
+	private double pow2(double v) {
 		return v * v;
 	}
 }

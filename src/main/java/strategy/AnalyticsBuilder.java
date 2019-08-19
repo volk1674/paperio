@@ -20,9 +20,9 @@ import static strategy.Game.width;
 
 @SuppressWarnings("WeakerAccess")
 public class AnalyticsBuilder {
-	public final static int MAXIMUM_DEPTH = 11 * width / Game.speed;
+	public final static int MAXIMUM_DEPTH = 14 * width / Game.speed;
 
-	private final static int MAX_LAG = 5;
+	private final static int MAX_LAG = 1;
 
 	private final CellDetails[] cellDetailsMatrix;
 	private final Map<Cell, Bonus> bonusMap;
@@ -85,6 +85,12 @@ public class AnalyticsBuilder {
 
 			cell = point2cell(posX, posY);
 
+			Cell prevCell = cell.nextCell(direction.opposite());
+			CellDetails prevDetails = cellDetailsMatrix[prevCell.getIndex()];
+			prevDetails.leaveTick = tick;
+			prevDetails.leaveTailLength = tail.length();
+			prevDetails.leaveDirection = direction;
+
 			if (territory.isNotTerritory(cell)) {
 				tail.addToTail(cell);
 			}
@@ -122,9 +128,11 @@ public class AnalyticsBuilder {
 		if (nextTick < cellDetails.leaveTick) {
 			cellDetails.leaveTick = nextTick;
 			cellDetails.leaveTailLength = tail.length();
+			cellDetails.leaveDirection = direction;
 		} else if (nextTick == cellDetails.leaveTick) {
 			if (tail.length() < cellDetails.leaveTailLength) {
 				cellDetails.leaveTailLength = tail.length();
+				cellDetails.leaveDirection = direction;
 			}
 		}
 
@@ -145,16 +153,28 @@ public class AnalyticsBuilder {
 			}
 
 			if (nextTick <= nextCellDetails.tick + MAX_LAG) {
-
-				Bonus bonus = bonusMap.get(nextCell);
-				if (bonus != null) {
-					switch (bonus.getBonusType()) {
-						case n:
-							nb += bonus.getCells();
-							break;
-						case s:
-							sb += bonus.getCells();
-							break;
+				{
+					Bonus bonus = bonusMap.get(nextCell);
+					if (bonus != null) {
+						switch (bonus.getBonusType()) {
+							case n:
+								nb += bonus.getCells();
+								break;
+							case s:
+								sb += bonus.getCells();
+								break;
+							case saw:
+								Cell sawCell = nextCell.nextCell(nextDirection);
+								while (sawCell != null) {
+									CellDetails sawCellDetails = cellDetailsMatrix[sawCell.getIndex()];
+									if (nextTick < sawCellDetails.sawTick) {
+										sawCellDetails.sawTick = nextTick;
+										sawCellDetails.sawDirection = nextDirection;
+									}
+									sawCell = sawCell.nextCell(nextDirection);
+								}
+								break;
+						}
 					}
 				}
 
@@ -167,6 +187,31 @@ public class AnalyticsBuilder {
 							CellDetails capturedCellDetails = cellDetailsMatrix[capturedCell.getIndex()];
 							if (nextTick < capturedCellDetails.capturedTick) {
 								capturedCellDetails.capturedTick = nextTick;
+							}
+
+							{
+								Bonus bonus = bonusMap.get(capturedCell);
+								if (bonus != null) {
+									switch (bonus.getBonusType()) {
+										case n:
+											nb += bonus.getCells();
+											break;
+										case s:
+											sb += bonus.getCells();
+											break;
+										case saw:
+											Cell sawCell = nextCell.nextCell(nextDirection);
+											while (sawCell != null) {
+												CellDetails sawCellDetails = cellDetailsMatrix[sawCell.getIndex()];
+												if (nextTick < sawCellDetails.sawTick) {
+													sawCellDetails.sawTick = nextTick;
+													sawCellDetails.sawDirection = nextDirection;
+												}
+												sawCell = sawCell.nextCell(nextDirection);
+											}
+											break;
+									}
+								}
 							}
 						}
 						internalBuild(nextTick, nextDirection, nextCell, new PlayerTail(), nb, sb);

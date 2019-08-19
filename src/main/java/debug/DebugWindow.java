@@ -14,6 +14,7 @@ import strategy.utils.MessagePlayer2PlayerConverter;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -21,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
@@ -33,6 +35,7 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,6 +71,11 @@ public class DebugWindow {
 	private static int playerIndexToAnalise = 1;
 	private static Player me;
 
+	private static JRadioButton rbShowTailLength;
+	private static JRadioButton rbShowCapturedTick;
+	private static JRadioButton rbShowCaptureTargetTick;
+	private static JRadioButton rbShowEnterTick;
+	private static JRadioButton rbSawTick;
 
 	private static String planString(Collection<Direction> directions) {
 		StringBuilder buffer = new StringBuilder();
@@ -265,7 +273,7 @@ public class DebugWindow {
 		tickLabel = new JLabel("Тик: " + tick);
 
 		JPanel buttonPanel = new JPanel();
-		frame.getContentPane().add(buttonPanel, BorderLayout.NORTH);
+		//frame.getContentPane().add(buttonPanel, BorderLayout.NORTH);
 		buttonPanel.add(firstButton);
 		buttonPanel.add(prevButton);
 		buttonPanel.add(nextButton);
@@ -281,6 +289,7 @@ public class DebugWindow {
 
 		JPanel analisePanel2 = new JPanel();
 		analisePanel2.setLayout(new BoxLayout(analisePanel2, 1));
+		analisePanel2.add(buttonPanel);
 
 		debugPlanField = new JTextField();
 		analisePanel2.add(debugPlanField);
@@ -306,9 +315,40 @@ public class DebugWindow {
 			colorPanel.setBackground(playerColors[playerIndexToAnalise]);
 			analise();
 		});
+
+		rbShowTailLength = new JRadioButton("Длина хвоста");
+		rbShowCapturedTick = new JRadioButton("Тик захвата");
+		rbShowCaptureTargetTick = new JRadioButton("Тик цели захвата");
+		rbShowEnterTick = new JRadioButton("Тик входа/выхода");
+		rbSawTick = new JRadioButton("Тик пилы");
+		JPanel radioPanel = new JPanel();
+		radioPanel.setLayout(new GridLayout(3, 2));
+		radioPanel.add(rbShowTailLength);
+		radioPanel.add(rbShowCapturedTick);
+		radioPanel.add(rbShowCaptureTargetTick);
+		radioPanel.add(rbShowEnterTick);
+		radioPanel.add(rbSawTick);
+
+		ButtonGroup buttonGroup = new ButtonGroup();
+		buttonGroup.add(rbShowTailLength);
+		buttonGroup.add(rbShowCapturedTick);
+		buttonGroup.add(rbShowCaptureTargetTick);
+		buttonGroup.add(rbShowEnterTick);
+		buttonGroup.add(rbSawTick);
+
+		rbShowTailLength.addActionListener(e -> frame.repaint());
+		rbShowCapturedTick.addActionListener(e -> frame.repaint());
+		rbShowCaptureTargetTick.addActionListener(e -> frame.repaint());
+		rbShowEnterTick.addActionListener(e -> frame.repaint());
+		rbSawTick.addActionListener(e -> frame.repaint());
+
+
 		analisePanel.add(jSpinner);
 		analisePanel.add(colorPanel);
+
+
 		analisePanel2.add(analisePanel);
+		analisePanel2.add(radioPanel);
 
 
 		JList<String> planList = new JList<>();
@@ -341,8 +381,17 @@ public class DebugWindow {
 
 
 		frame.getContentPane().add(analisePanel2, BorderLayout.WEST);
+
 		drawPanel = new DrawPanel();
-		frame.getContentPane().add(drawPanel);
+		JScrollPane scrollPaneForDraw = new JScrollPane();
+		//scrollPaneForDraw.add(drawPanel);
+		scrollPaneForDraw.setViewportView(drawPanel);
+		drawPanel.setSize(new Dimension(Game.sizeX * Game.width, Game.sizeY * Game.width));
+		drawPanel.setPreferredSize(new Dimension(1500, 1500));
+
+		frame.getContentPane().add(scrollPaneForDraw);
+
+		scrollPaneForDraw.getVerticalScrollBar().setUnitIncrement(Game.width);
 
 		frame.pack();
 		frame.setVisible(true);
@@ -436,7 +485,7 @@ public class DebugWindow {
 
 		private void pain(Graphics g) {
 			Graphics2D g2 = (Graphics2D) g;
-			g2.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+			g2.setFont(new Font("TimesRoman", Font.PLAIN, 14));
 
 			Dimension dim = getSize();
 			int cellSize = Math.min((dim.height - 10) / Game.sizeY, (dim.width - 10) / Game.sizeX);
@@ -479,18 +528,30 @@ public class DebugWindow {
 
 
 					int timeLimit = 0;
-					int capturedTick = 0;
-					int enterTailLength = 0;
+					String indicator2 = "";
 					if (strategy.getCellDetailsMatrix() != null) {
 						timeLimit = strategy.getCellDetailsMatrix()[cell.getIndex()].tick - tick;
-						capturedTick = strategy.getCellDetailsMatrix()[cell.getIndex()].capturedTick - tick;
-						enterTailLength = strategy.getCellDetailsMatrix()[cell.getIndex()].enterTailLength;
+
+						if (rbShowTailLength.isSelected()) {
+							indicator2 = strategy.getCellDetailsMatrix()[cell.getIndex()].enterTailLength +
+									"/" + strategy.getCellDetailsMatrix()[cell.getIndex()].leaveTailLength;
+						} else if (rbShowCapturedTick.isSelected()) {
+							indicator2 = String.valueOf(strategy.getCellDetailsMatrix()[cell.getIndex()].capturedTick - tick);
+						} else if (rbShowCaptureTargetTick.isSelected()) {
+							indicator2 = String.valueOf(strategy.getCellDetailsMatrix()[cell.getIndex()].captureTargetTick - tick);
+						} else if (rbShowEnterTick.isSelected()) {
+							indicator2 = (strategy.getCellDetailsMatrix()[cell.getIndex()].enterTick - tick) + "/" +
+									(strategy.getCellDetailsMatrix()[cell.getIndex()].leaveTick - tick);
+						} else if (rbSawTick.isSelected()) {
+							indicator2 = String.valueOf(strategy.getCellDetailsMatrix()[cell.getIndex()].sawTick - tick);
+						}
+
 					}
 					g.setColor(Color.BLACK);
 
 					g.setColor(invertColor(backgroundColor));
-					g.drawString(String.valueOf(timeLimit), cellLeft + 8, cellTop + 12);
-					g.drawString(String.valueOf(enterTailLength), cellLeft + 8, cellTop + 22);
+					g.drawString(String.valueOf(timeLimit), cellLeft + 8, cellTop + 14);
+					g.drawString(indicator2, cellLeft + 8, cellTop + 30);
 
 					if (bonusMap != null) {
 						Bonus bonus = bonusMap.get(cell);
