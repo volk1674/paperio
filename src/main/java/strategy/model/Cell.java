@@ -3,6 +3,7 @@ package strategy.model;
 import message.Direction;
 import strategy.Game;
 
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,10 @@ public class Cell {
 
 	public Cell nextCell(Direction direction) {
 		return directionsMap.get(direction);
+	}
+
+	public Collection<Cell> neighbors() {
+		return directionsMap.values();
 	}
 
 	@Override
