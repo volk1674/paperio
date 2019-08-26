@@ -34,6 +34,7 @@ public class BestStrategy implements Strategy {
 	private Map<Cell, Bonus> bonusMap;
 	private PlayerTerritory otherPlayerTerritory;
 
+	private boolean capturedRisk;
 	private int startCalculationTick;
 	private int startPlanTick = 1;
 	private int oldTailLength;
@@ -109,6 +110,9 @@ public class BestStrategy implements Strategy {
 		Cell cell = Game.point2cell(state.getX(), state.getY());
 		startedOnOwnTerritory = territory.isTerritory(cell);
 
+		CellDetails cellDetails = cellDetailsMatrix[cell.getIndex()];
+		capturedRisk = cellDetails.capturedTick - tick < AnalyticsBuilder.MAXIMUM_DEPTH;
+
 		PlayerTail tail = new PlayerTail(state.getTail());
 		// для каждого возможного направления движения вычисляем рейтинг
 
@@ -158,9 +162,7 @@ public class BestStrategy implements Strategy {
 			ticksLeft = min(ncd.capturedTick - nextTick, ticksLeft);
 		}
 
-		if (ticksLeft < 0 && oldTailLength == 0) {
-			return MINIMAL_SCORE;
-		} else if (ticksLeft < 0) {
+		if (ticksLeft < 0) {
 			risk = -ticksLeft;
 		}
 
@@ -168,11 +170,20 @@ public class BestStrategy implements Strategy {
 			if (ccd.sawTick >= tick && ccd.sawTick < nextTick) {
 				risk += 12. / (1 + ccd.sawTick - startCalculationTick);
 			}
+
+			if (tail.length() > 0) {
+				ticksLeft = min(ncd.sawTick - tick, ticksLeft);
+			}
+
 		}
 
 		if (ncd.sawTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
 			if (ncd.sawTick > tick && ncd.sawTick <= nextTick) {
 				risk += 12. / (1 + ccd.sawTick - startCalculationTick);
+			}
+
+			if (tail.length() > 0) {
+				ticksLeft = min(ncd.sawTick - nextTick, ticksLeft);
 			}
 		}
 
@@ -222,7 +233,11 @@ public class BestStrategy implements Strategy {
 
 				if (enterDirection != node.getDirection() || nextTick > ccdTick) {
 					if (tail.length() < ccdEnterTailLength) {
-						rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+						if (sb == 0) {
+							rate += .1 / (nextTick - startCalculationTick);
+						} else {
+							rate -= .1 / (nextTick - startCalculationTick);
+						}
 					} else if (tail.length() == ncdLeaveTailLength) {
 						// погибнем вместе
 						risk++;
@@ -245,7 +260,11 @@ public class BestStrategy implements Strategy {
 					if (ncdLeaveDirection != node.getDirection() || ncdLeaveTick > nextTick) {
 						if (tail.length() < ncdLeaveTailLength) {
 							// наш хвост короче и мы его победим :)
-							rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+							if (sb == 0) {
+								rate += .1 / (nextTick - startCalculationTick);
+							} else {
+								rate -= .1 / (nextTick - startCalculationTick);
+							}
 						} else if (tail.length() == ncdLeaveTailLength) {
 							// погибнем вместе
 							risk++;
@@ -262,7 +281,11 @@ public class BestStrategy implements Strategy {
 					// соперник только входит в клетку
 					if (tail.length() < ncdEnterTailLength) {
 						// наш хвост короче и мы его победим :)
-						rate += 30. / (1 + pow2(nextTick - startCalculationTick));
+						if (sb == 0) {
+							rate += .1 / (nextTick - startCalculationTick);
+						} else {
+							rate -= .1 / (nextTick - startCalculationTick);
+						}
 					} else if (tail.length() == ncdEnterTailLength) {
 						// погибнем вместе
 						risk++;
@@ -279,11 +302,10 @@ public class BestStrategy implements Strategy {
 		}
 
 		if ((ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH && otherPlayerTails.isTerritory(nextCell)) {
-			if (nextTick < ncd.capturedTick) {
+			if (nextTick <= ncd.capturedTick) {
 				rate += 30;
 			}
 		}
-
 
 		if (nb > 0) nb--;
 		if (sb > 0) sb--;
@@ -319,7 +341,7 @@ public class BestStrategy implements Strategy {
 			List<Cell> capturedCells = capture(territory, tail);
 
 			if ((ncd.capturedTick - startCalculationTick) < AnalyticsBuilder.MAXIMUM_DEPTH && ncd.capturedTick < nextTick) {
-				risk += 10;
+				risk += nextTick - ncd.capturedTick;
 			}
 
 			rate += capturedCells.size();
@@ -327,10 +349,9 @@ public class BestStrategy implements Strategy {
 				if (otherPlayerTerritory.isTerritory(capturedCell)) {
 					rate += 4;
 				} else {
-					rate -= 2 * sqrt(pow2(1. * abs(sizeX / 2. - capturedCell.getX()) / sizeX) +
+					rate -= sqrt(pow2(1. * abs(sizeX / 2. - capturedCell.getX()) / sizeX) +
 							pow2(1. * abs(sizeY / 2. - capturedCell.getY()) / sizeY));
 				}
-
 
 				bonus = bonusMap.get(capturedCell);
 				if (bonus != null) {
@@ -355,23 +376,42 @@ public class BestStrategy implements Strategy {
 								rate += otherPlayerTails.isTerritory(rc) ? 10 : 0;
 								rc = rc.nextCell(node.getDirection());
 							}
-
-
 							break;
 					}
 				}
 
 				if (otherPlayersHeads.get(capturedCell.getIndex())) {
-					rate *= 1.5;
+					rate += 50;
 				}
 
+//				CellDetails captureCellDetail = cellDetailsMatrix[capturedCell.getIndex()];
+//				if (captureCellDetail.captureTargetTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH && captureCellDetail.captureTargetTick > nextTick) {
+//					rate += 10;
+//				}
 				CellDetails captureCellDetail = cellDetailsMatrix[capturedCell.getIndex()];
-				if (captureCellDetail.captureTargetTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH && captureCellDetail.captureTargetTick > nextTick) {
-					rate += 1;
+				if (captureCellDetail.captureTargetTick - startCalculationTick < AnalyticsBuilder.MAXIMUM_DEPTH) {
+					rate += capturedRisk ? 100 : 1;
+				}
+
+				// todo надо давать очки за граничные клетки противника - снижаем риск окружения
+				if (captureCellDetail.ownerIndex > 0) {
+					if (capturedCell.isBorder()) {
+						rate += capturedRisk ? 100 : .1;
+					}
+
+					boolean f = false;
+					for (Cell capturedNeighbor : capturedCell.neighbors()) {
+						CellDetails capturedNeighborCellDetails = cellDetailsMatrix[capturedNeighbor.getIndex()];
+						if (capturedNeighborCellDetails.ownerIndex != captureCellDetail.ownerIndex && capturedNeighborCellDetails.ownerIndex != me.getIndex()) {
+							f = true;
+							break;
+						}
+					}
+					if (f) {
+						rate += capturedRisk ? 100 : .1;
+					}
 				}
 			}
-
-			//rate /= 1 + 4. * abs(sizeX / 2 - nextCell.getX()) / sizeX + 4. * abs(sizeY / 2 - nextCell.getY()) / sizeY;
 
 			return new CalculationScore(rate / (nextTick - startPlanTick + 1), risk);
 		}

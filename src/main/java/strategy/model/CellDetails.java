@@ -3,7 +3,15 @@ package strategy.model;
 import message.Direction;
 
 public class CellDetails {
+	/**
+	 * Индекс игрога который сможет добраться самым первым
+	 */
 	public int playerIndex;
+
+	/**
+	 * Владелец клетки
+	 */
+	public int ownerIndex;
 
 	/**
 	 * тик полного заполнения клетки
