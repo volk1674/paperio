@@ -389,7 +389,7 @@ public class BestStrategy implements Strategy {
 					rate += capturedRisk ? 100 : 1;
 				}
 
-				// todo надо давать очки за граничные клетки противника - снижаем риск окружения
+				//надо давать очки за граничные клетки противника - снижаем риск окружения
 				if (captureCellDetail.ownerIndex > 0) {
 					if (capturedCell.isBorder()) {
 						rate += capturedRisk ? 100 : .1;
