@@ -409,6 +409,7 @@ private static boolean markVoids(PlayerTerritory playerTerritory, PlayerTail tai
 [MoveNode]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/MoveNode.java
 [Game]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/Game.java
 
+[Cell]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/model/Cell.java
 [PlayerState]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/model/PlayerState.java
 [Player]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/model/Player.java
 [PlayerTerritory]: https://github.com/volk1674/paperio/blob/master/src/main/java/strategy/model/PlayerTerritory.java
