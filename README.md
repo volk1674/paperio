@@ -254,7 +254,7 @@ private int calculateMoveScore(List<Cell> capturedCells, Map<Cell, Bonus> bonusM
 тиков завершения пути (бот пришел на свою территорию) и тика когда ему может гразить опасность (например, чужой бот 
 может наступить на хвост).  
 
-Для нахождения захваченных клеток исползую следующий алгоритм (фрагмент кода утилитного класса [Game]):
+Для нахождения захваченных клеток использую следующий алгоритм (фрагмент кода утилитного класса [Game]):
 ```java
 public static List<Cell> capture(PlayerTerritory playerTerritory, PlayerTail tail) {
     List<Cell> result = new ArrayList<>();
