@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toMap;
 import static strategy.Game.point2cell;
 
 public class Main {
@@ -31,7 +32,7 @@ public class Main {
 		PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
 		MessagePlayer2PlayerConverter playerConverter = new MessagePlayer2PlayerConverter();
 		//Strategy simpleStrategy = new SimpleStrategy();
-		Strategy simpleStrategy = new BestStrategy();
+		Strategy strategy = new BestStrategy();
 
 		String line = "";
 		try {
@@ -67,11 +68,11 @@ public class Main {
 							others.add(player);
 						}
 					}
-
 					Map<Cell, Bonus> bonusMap = stream(message.params.bonuses)
-							.collect(Collectors.toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]), bonus -> new Bonus(bonus.type, bonus.active_ticks)));
+							.collect(toMap(bonus -> point2cell(bonus.position[0], bonus.position[1]),
+									bonus -> new Bonus(bonus.type, bonus.active_ticks)));
 
-					out.print(commands.get(simpleStrategy.calculate(message.params.tick_num, me, others, bonusMap)));
+					out.print(commands.get(strategy.calculate(message.params.tick_num, me, others, bonusMap)));
 					out.flush();
 				}
 			}

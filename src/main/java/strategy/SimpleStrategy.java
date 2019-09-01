@@ -111,6 +111,9 @@ public class SimpleStrategy implements Strategy {
 		FOR_PLANS:
 		for (MovePlanWithScore plan : plans) {
 			if (prevPlan != null && prevPlan.isPartOf(plan) || isInBestPlans(plan, bestPlans)) {
+				// попытка сократить вычислительные затраты и убрать из рассмотрения планы которые повторяют уже рассмотренные.
+				// т.к. план проигрывается только до первого захвата территории или гибели бота,
+				// а более длинные маршруты рассматриваются после коротких это помогает немного сократить вычислительные затраты
 				continue;
 			}
 			me.saveState();
@@ -199,6 +202,8 @@ public class SimpleStrategy implements Strategy {
 								if (tickLag > 0) {
 									plan.setRisk(max(tickLag, plan.getRisk()));
 								}
+
+								// запоминаем место на котором закончили рассмотрение данного плана
 								move.setLength(n);
 								bestPlans.add(plan);
 								continue FOR_PLANS;

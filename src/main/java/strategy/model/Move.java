@@ -2,8 +2,15 @@ package strategy.model;
 
 import message.Direction;
 
+/**
+ * Класс для описания маршрута движения бота. Использовался в начальных версиях стратегии.
+ * @see strategy.SimpleStrategy
+ * @see MovePlanWithScore
+ */
 public class Move {
+	// Направление движения
 	private Direction direction;
+	//Сколько клеток двигаться в направлении direction
 	private int length;
 
 	public Move(Direction direction) {

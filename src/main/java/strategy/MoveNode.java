@@ -7,10 +7,11 @@ import java.util.Map;
 import java.util.Set;
 
 
+/**
+ * Класс
+ */
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class MoveNode {
-	public static int count = 0;
-
 	private final Map<Direction, MoveNode> nodes = new EnumMap<>(Direction.class);
 	private final Direction direction;
 
@@ -21,7 +22,26 @@ public class MoveNode {
 
 	public MoveNode(Direction direction) {
 		this.direction = direction;
-		count++;
+	}
+
+	/**
+	 * Создает дерево дочерних элементов MoveNode
+	 *
+	 * @param direction направление ветки дочерних элементов
+	 * @param length    длина маршрута в направлении direction
+	 * @return MoveNode последний элемент маршрута
+	 */
+	public MoveNode createPath(Direction direction, int length) {
+		MoveNode node = this;
+		for (int i = 0; i < length; i++) {
+			MoveNode next = node.nodes.get(direction);
+			if (next == null) {
+				next = new MoveNode(direction);
+				node.nodes.put(direction, next);
+			}
+			node = next;
+		}
+		return node;
 	}
 
 	public Map<Direction, MoveNode> getNodes() {
@@ -34,19 +54,6 @@ public class MoveNode {
 
 	public MoveNode getChildNode(Direction direction) {
 		return nodes.get(direction);
-	}
-
-	public MoveNode createPath(Direction direction, int length) {
-		MoveNode node = this;
-		for (int i = 0; i < length; i++) {
-			MoveNode next = node.nodes.get(direction);
-			if (next == null) {
-				next = new MoveNode(direction);
-				node.nodes.put(direction, next);
-			}
-			node = next;
-		}
-		return node;
 	}
 
 	public Direction getDirection() {
